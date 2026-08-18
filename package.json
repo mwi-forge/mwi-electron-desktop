@@ -15,5 +15,9 @@
     "tampermonkey"
   ],
   "author": "shenhuanjie",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3"
+  }
 }
