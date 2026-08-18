@@ -1,0 +1,19 @@
+{
+  "name": "mwi-electron-desktop",
+  "version": "0.1.0",
+  "description": "Electron 桌面端多账号浏览器：在同一台电脑同时登录多个网页游戏账号，账号环境完全隔离，支持油猴脚本扩展，资源占用低且具备反关联能力",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "electron",
+    "multi-account",
+    "browser",
+    "userscript",
+    "tampermonkey"
+  ],
+  "author": "shenhuanjie",
+  "license": "MIT"
+}
