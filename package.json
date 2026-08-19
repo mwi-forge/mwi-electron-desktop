@@ -54,14 +54,6 @@
     ],
     "extraResources": [
       {
-        "from": "resources/mihomo",
-        "to": "mihomo",
-        "filter": [
-          "mihomo",
-          "mihomo.exe"
-        ]
-      },
-      {
         "from": "resources/tampermonkey",
         "to": "tampermonkey",
         "filter": [
@@ -81,13 +73,32 @@
       ],
       "identity": null,
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "extraResources": [
+        {
+          "from": "resources/mihomo/macos",
+          "to": "mihomo",
+          "filter": [
+            "mihomo",
+            "mihomo-amd64"
+          ]
+        }
+      ]
     },
     "executableName": "MWIMultiAccountManager",
     "win": {
       "target": [
         "nsis",
         "portable"
+      ],
+      "extraResources": [
+        {
+          "from": "resources/mihomo/win",
+          "to": "mihomo",
+          "filter": [
+            "mihomo.exe"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -99,7 +110,16 @@
         "AppImage",
         "deb"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "extraResources": [
+        {
+          "from": "resources/mihomo/linux",
+          "to": "mihomo",
+          "filter": [
+            "mihomo"
+          ]
+        }
+      ]
     },
     "publish": null
   }
