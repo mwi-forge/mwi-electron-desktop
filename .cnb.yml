@@ -16,9 +16,7 @@ main:
         - name: install-deps
           script: |
             set -e
-            npm config set registry https://registry.npmmirror.com
-            npm config set electron_mirror https://npmmirror.com/mirrors/electron/
-            npm ci --ignore-scripts --no-audit --no-fund
+            npm ci --ignore-scripts
             cd node_modules/electron && node install.js && cd ../..
             echo 'electron binary downloaded'
         - name: build-linux
@@ -47,9 +45,7 @@ main:
         - name: install-deps
           script: |
             set -e
-            npm config set registry https://registry.npmmirror.com
-            npm config set electron_mirror https://npmmirror.com/mirrors/electron/
-            npm ci --ignore-scripts --no-audit --no-fund
+            npm ci --ignore-scripts
             cd node_modules/electron && node install.js && cd ../..
             echo 'electron binary downloaded'
         - name: build-linux
