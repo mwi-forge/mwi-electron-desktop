@@ -19,7 +19,11 @@
     "userscript",
     "tampermonkey"
   ],
-  "author": "shenhuanjie",
+  "author": {
+    "name": "shenhuanjie",
+    "email": "shenhuanjie@users.noreply.github.com"
+  },
+  "homepage": "https://cnb.cool/shenhuanjie/mwi-miuoooooo/mwi-electron-desktop",
   "license": "MIT",
   "devDependencies": {
     "electron": "^43.4.0",
