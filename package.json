@@ -115,6 +115,9 @@
         "deb"
       ],
       "category": "Utility",
+      "deb": {
+        "compression": "gzip"
+      },
       "extraResources": [
         {
           "from": "resources/mihomo/linux",
