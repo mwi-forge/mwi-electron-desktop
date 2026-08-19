@@ -1,0 +1,96 @@
+/* src/css/settings-tab.css
+ *
+ * 设置面板样式。本文件 + 复用 src/css/account-form.css 的 .account-form-card / fieldset 容器样式
+ * 通用 .modal__btn / .modal__btn--primary 按钮样式在 sidebarex 没定义（per memory 2026-08-19）；
+ * account-form 也用这些 class 所以一起补在 settings-tab.css（lowest-cost 修复点）；
+ * 后续如需拆分到通用 buttons.css 把本段剪切即可。
+ */
+
+/* === 通用按钮样式（修 .modal__btn / .modal__btn--primary 缺失）===
+   account-form.js + settings-tab.js 都用 .modal__btn + .modal__btn--primary；
+   之前 CSS 漏定义导致按钮掉回浏览器默认 = 看着灰且无 primary 视觉区分。 */
+.modal__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 8px;
+  background: var(--mwi-bg-inset);
+  color: var(--mwi-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--mwi-fast), border-color var(--mwi-fast), transform var(--mwi-fast);
+  user-select: none;
+}
+.modal__btn:hover {
+  background: var(--mwi-bg-elevated);
+  border-color: var(--mwi-border-strong);
+}
+.modal__btn:active {
+  transform: translateY(1px);
+}
+.modal__btn:focus {
+  outline: none;
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+.modal__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.modal__btn--primary {
+  background: var(--mwi-accent);
+  border-color: var(--mwi-accent);
+  color: #fff;  /* 跟 --mwi-accent 配的固定白字（accent 是 #7B9EFF 主蓝） */
+}
+.modal__btn--primary:hover {
+  background: color-mix(in srgb, var(--mwi-accent) 88%, white 12%);
+  border-color: color-mix(in srgb, var(--mwi-accent) 88%, white 12%);
+}
+.modal__btn--primary:focus {
+  /* primary 按钮 focus 不再覆盖背景色，只加柔光环 */
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+
+/* === Settings tab specific: fieldset 容器更精致（避免默认 2px groove 太素）===
+   settings 只用 1 个 fieldset，把 legend 撑起、border 用 dashed subtle、padding 留呼吸感。 */
+.settings-tab fieldset {
+  border: 1px dashed var(--mwi-border-subtle);
+  border-radius: 10px;
+  padding: 14px 18px 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings-tab legend {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mwi-text-secondary);
+  padding: 0 8px;
+  letter-spacing: 0.3px;
+  background: transparent;
+}
+
+/* Hint 文案：跟 account-form 兼容的 .modal__hint 同样视觉 */
+.settings-tab .modal__hint,
+.settings-tab .settings-tab__hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mwi-text-muted);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* Select 宽一点（避免选项长时挤压） */
+.settings-tab select[name="locale"] {
+  width: 100%;
+  max-width: 360px;
+}

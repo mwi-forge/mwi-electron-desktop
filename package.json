@@ -5,7 +5,12 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder"
+    "dev": "MWI_DEV=1 electron .",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:dir": "electron-builder --dir"
   },
   "keywords": [
     "electron",
@@ -19,5 +24,83 @@
   "devDependencies": {
     "electron": "^43.4.0",
     "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "yaml": "^2.9.0"
+  },
+  "build": {
+    "appId": "com.mwi.desktop",
+    "productName": "MWI Multi-Account Manager",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "electronDownload": {
+      "mirror": "https://registry.npmmirror.com/-/binary/electron/"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "lib/**/*",
+      "resources/**/*",
+      "build/icon.icns",
+      "build/icon.ico",
+      "build/mwi.iconset/**/*",
+      "build/icons/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/mihomo",
+        "to": "mihomo",
+        "filter": [
+          "mihomo",
+          "mihomo.exe"
+        ]
+      },
+      {
+        "from": "resources/tampermonkey",
+        "to": "tampermonkey",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/logo.png",
+        "to": "logo.png"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "executableName": "MWIMultiAccountManager",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "shortcutName": "MWI Multi-Account Manager"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    },
+    "publish": null
   }
 }

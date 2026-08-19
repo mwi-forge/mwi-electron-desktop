@@ -1,0 +1,200 @@
+/* ==========================================================================
+   account-form.css — 中部 canvas 区静态表单（添加/编辑账号）
+   复用 sidebar.css 的 .modal-* 与 panel.css 的表单控件样式，
+   此处只补 canvas 嵌入专属：去掉 backdrop、占满 canvas、可滚。
+   ========================================================================== */
+
+/* canvas 区域在表单激活时切换可见：mount 显示 / placeholder 隐藏 */
+.canvas__form-mount[hidden] { display: none; }
+.canvas__form-mount {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--mwi-bg-panel);
+  /* 隐藏占位画布的网格背景与阴影内嵌线，让表单成为干净的容器 */
+  box-shadow: none;
+  background-image: none;
+  overflow: hidden;
+  /* DOM 顺序 mount 在前、placeholder 在后——后渲染的同 absolute inset:0 默认盖在 mount 上；
+  显示表单时必须抬到 placeholder 之上。 */
+  z-index: 2;
+}
+
+/* 表单本身：在 canvas 中央以卡片样式展示 */
+.account-form-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 32px 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.account-form-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: var(--mwi-text-primary);
+  letter-spacing: 0.2px;
+}
+.account-form-card__title::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background-color: var(--mwi-accent);
+  -webkit-mask: var(--mwi-ico-user) no-repeat center / contain;
+  mask: var(--mwi-ico-user) no-repeat center / contain;
+}
+
+.account-form-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* === 表单字段：复用 sidebar.css .modal__form 的 token 化样式 ===
+   account-form.js 用 class="account-form-card__form"，没复用 .modal__form，
+   这里把 input/select/label 的视觉规则同步到 account-form，让它跟整体 UI 协调。 */
+.account-form-card__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mwi-text-secondary);
+}
+.account-form-card__form input,
+.account-form-card__form select {
+  height: 34px;
+  padding: 0 10px;
+  background: var(--mwi-bg-inset);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 8px;
+  color: var(--mwi-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  outline: none;
+  transition: border-color var(--mwi-fast), box-shadow var(--mwi-fast);
+}
+
+/* === select 折叠态：藏掉 OS 系统箭头，画 DSH 风格 chevron ===
+   <option> 展开面板仍由 OS 绘制（macOS Chrome = 系统浅色）——
+   这是浏览器限制，没法用 CSS 完全覆盖；想完全统一需自定义 listbox 控件。
+   折叠态：appearance:none + 在 label 容器上画 mask chevron（用 label 作相对定位容器）。 */
+.account-form-card__form label:has(select) {
+  position: relative; /* 让 chevron ::after 相对这个 label 定位 */
+}
+.account-form-card__form select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 32px; /* 给右侧自定义 chevron 让位 */
+  cursor: pointer;
+}
+.account-form-card__form select::-ms-expand { display: none; } /* IE/旧 Edge */
+.account-form-card__form label:has(select)::after {
+  content: '';
+  position: absolute;
+  /* label 是 flex column：label 文字 ~16px + gap 6px + select 顶边 ≈22px；
+     让 chevron 落在 select 框内右侧居中（select 高 34px 中点 ≈ 22+17 = 39px）。 */
+  top: 39px;
+  right: 12px;
+  pointer-events: none;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  background-color: var(--mwi-text-muted);
+  -webkit-mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+  mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+}
+.account-form-card__form input:focus,
+.account-form-card__form select:focus {
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+.account-form-card__form input::placeholder {
+  color: var(--mwi-text-faint);
+}
+
+.account-form-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--mwi-divider);
+}
+
+/* === 从订阅选节点区块（proxyType=subscription 时显示） === */
+.account-form-card__subs[hidden] { display: none; }
+.account-form-card__subs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--mwi-border-subtle);
+  border-radius: 8px;
+  background: var(--mwi-bg-elevated);
+}
+.account-form-card__manual-proxy[hidden] { display: none; }
+.account-form-card__exclusive {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  font-weight: 400 !important;
+  color: var(--mwi-text-secondary) !important;
+  cursor: pointer;
+}
+.account-form-card__exclusive input[type=checkbox] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--mwi-accent);
+}
+
+/* 表单字段说明文字：与 sidebar.css .modal__hint 兼容 */
+.account-form-card .modal__hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mwi-text-muted);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* 入场动画：复用 tokens.css mwi-rise */
+.account-form-card {
+  animation: mwi-rise 200ms var(--mwi-ease);
+}
+
+/* 加载中占位：防止 lazy load 期间空白闪烁 */
+.account-form-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--mwi-text-muted);
+  font-size: 12px;
+  gap: 8px;
+}
+.account-form-loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--mwi-border-strong);
+  border-top-color: var(--mwi-accent);
+  border-radius: 50%;
+  animation: mwi-spin 1s linear infinite;
+}

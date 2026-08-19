@@ -1,0 +1,97 @@
+/* ==========================================================================
+   tabbar.css — 中部 tab 栏
+   JS 整体重绘 #tabbar，仅依赖 tab / tab--focused / tab__dot / tab__name /
+   tab__close / tabbar__empty 既有 class 与 data-action / data-id 属性。
+   ========================================================================== */
+
+.tabbar {
+  gap: 4px;
+}
+
+/* ===== tab ===== */
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  max-width: 200px;
+  padding: 0 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--mwi-text-muted);
+  position: relative;
+  user-select: none;
+  flex: none;
+  transition: background-color var(--mwi-base), color var(--mwi-base), border-color var(--mwi-base);
+  animation: mwi-log-in 180ms var(--mwi-ease); /* tab 出现动画 */
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mwi-text-primary);
+}
+
+/* 选中：浮层底 + accent 下划线（proto-2 基因）
+   margin-bottom:-1px 让下划线覆盖 tabbar 底部分隔线，视觉上连成一线 */
+.tab--focused {
+  background: var(--mwi-bg-elevated);
+  color: var(--mwi-text-primary);
+  border-bottom-color: var(--mwi-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  margin-bottom: -1px;
+}
+
+/* ===== 状态点（色点 + 状态标签双通道；文本符号隐藏，纯 CSS 画点）=====
+   形状与各状态（stopped 灰 / running 绿呼吸 / error 红脉冲）统一定义在
+   sidebar.css；tab 内 stopped 类 =「启动中」，呈蓝色旋转 spinner。 */
+.tab__dot {
+  margin-right: 2px;
+}
+
+.tab__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+/* ===== 关闭按钮（data-action="close"，[X] 文本隐藏，mask 画 X）===== */
+.tab__close[data-action='close'] {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--mwi-text-faint);
+  cursor: pointer;
+  font-size: 0;
+  line-height: 0;
+  flex: none;
+  transition: background-color var(--mwi-fast), color var(--mwi-fast);
+}
+.tab__close[data-action='close']::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-x) no-repeat center / contain;
+  mask: var(--mwi-ico-x) no-repeat center / contain;
+}
+.tab:hover .tab__close[data-action='close'] {
+  color: var(--mwi-text-muted);
+}
+.tab__close[data-action='close']:hover {
+  background: var(--mwi-status-error);
+  color: #FFFFFF;
+}
+
+/* ===== 空状态 ===== */
+.tabbar__empty {
+  /* 定义在 layout.css */
+}

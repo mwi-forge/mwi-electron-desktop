@@ -1,0 +1,391 @@
+/* ==========================================================================
+   panel.css — 右侧详情 + 操作按钮组 + 日志流
+   JS 整体重绘 #panel-body 与 #logs-list，样式只依赖既有 class / data-action。
+   ========================================================================== */
+
+/* ===== 面板头部（静态）===== */
+.panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 var(--mwi-space-4);
+  border-bottom: 1px solid var(--mwi-divider);
+  color: var(--mwi-text-primary);
+}
+.panel__header .ico {
+  color: var(--mwi-accent);
+}
+.panel__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.panel__body {
+  flex: 0 1 auto; /* 卡片按内容自然高度，超高时收缩出滚动条 */
+  padding: var(--mwi-space-3);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ===== 详情卡片 ===== */
+.panel__account {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--mwi-bg-elevated);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: var(--mwi-radius-lg);
+  padding: var(--mwi-space-4);
+  box-shadow: var(--mwi-shadow-sm);
+  animation: mwi-rise 200ms var(--mwi-ease); /* 切换账号时淡入 */
+}
+
+/* ===== 卡片头部：名称 + 状态 + 收起按钮（收起后仅剩此部分） ===== */
+.panel__account-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel__account-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--mwi-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel__collapse-btn {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mwi-text-muted);
+  transition: background-color var(--mwi-fast), color var(--mwi-fast);
+}
+.panel__collapse-btn::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+  mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+  transition: transform 0.18s var(--mwi-ease);
+}
+.panel__collapse-btn:hover {
+  background: var(--mwi-bg-hover);
+  color: var(--mwi-text-primary);
+}
+/* 收起态：箭头指右，详情整块隐藏 */
+.panel__account--collapsed .panel__collapse-btn::before {
+  transform: rotate(-90deg);
+}
+.panel__account--collapsed .panel__account-detail {
+  display: none;
+}
+
+.panel__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panel__label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--mwi-text-muted);
+}
+
+.panel__value {
+  font-size: 13px;
+  color: var(--mwi-text-primary);
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.panel__value--url {
+  font-family: var(--mwi-font-mono);
+  font-size: 12px;
+  color: var(--mwi-text-secondary);
+  word-break: break-all;
+}
+
+/* 状态行：色点 + 状态文字 双通道 */
+.panel__value--running,
+.panel__value--stopped {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+.panel__value--running::before,
+.panel__value--stopped::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.panel__value--running {
+  color: var(--mwi-status-running);
+}
+.panel__value--running::before {
+  background: var(--mwi-status-running);
+  box-shadow: 0 0 6px var(--mwi-glow-running);
+  animation: mwi-dot-running 2.4s ease-in-out infinite;
+}
+.panel__value--stopped {
+  color: var(--mwi-status-stopped);
+}
+.panel__value--stopped::before {
+  background: var(--mwi-status-stopped);
+}
+
+/* ===== 操作按钮组（按 data-action 配图标，mask 方案）===== */
+.panel__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--mwi-divider);
+}
+
+.panel__actions .btn {
+  height: 30px;
+  border-color: var(--mwi-border-subtle);
+}
+.panel__actions .btn:hover {
+  border-color: var(--mwi-border-strong);
+}
+
+/* 启动：accent 全宽主按钮 */
+.panel__actions .btn--accent {
+  grid-column: 1 / -1;
+  border-color: rgba(123, 158, 255, 0.6);
+}
+/* 删除：danger 描边 */
+.panel__actions .btn--danger {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: var(--mwi-status-error);
+}
+.panel__actions .btn--danger:hover {
+  background: var(--mwi-status-error);
+  border-color: var(--mwi-status-error);
+  color: #0D0F16;
+}
+/* 运行中（无 accent 按钮 = 5 个普通按钮）：最后一个奇数按钮占满整行，避免孤行 */
+.panel__actions:not(:has(.btn--accent)) .btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* 每个操作按钮的图标 */
+.panel__actions .btn::before {
+  content: '';
+  width: 13px;
+  height: 13px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-play) no-repeat center / contain;
+  mask: var(--mwi-ico-play) no-repeat center / contain;
+}
+.panel__actions .btn[data-action='start']::before {
+  -webkit-mask-image: var(--mwi-ico-play);
+  mask-image: var(--mwi-ico-play);
+}
+.panel__actions .btn[data-action='stop']::before {
+  -webkit-mask-image: var(--mwi-ico-stop);
+  mask-image: var(--mwi-ico-stop);
+}
+.panel__actions .btn[data-action='reload']::before {
+  -webkit-mask-image: var(--mwi-ico-refresh);
+  mask-image: var(--mwi-ico-refresh);
+}
+.panel__actions .btn[data-action='edit']::before {
+  -webkit-mask-image: var(--mwi-ico-pencil);
+  mask-image: var(--mwi-ico-pencil);
+}
+.panel__actions .btn[data-action='copy']::before {
+  -webkit-mask-image: var(--mwi-ico-copy);
+  mask-image: var(--mwi-ico-copy);
+}
+.panel__actions .btn[data-action='remove']::before {
+  -webkit-mask-image: var(--mwi-ico-trash);
+  mask-image: var(--mwi-ico-trash);
+}
+
+/* ===== 日志区 ===== */
+.panel__logs {
+  border-top: 1px solid var(--mwi-divider);
+  flex: 1 1 0; /* 日志区占满卡片之外的全部剩余高度，紧跟上方的卡片 */
+  min-height: 96px;
+  background: var(--mwi-bg-base); /* 深一档底色，让「占满剩余高度」的区域边界可见 */
+  overflow-y: auto; /* panel.js 直接操作 #panel-logs.scrollTop，滚动容器必须是它 */
+  padding-bottom: 10px;
+}
+
+.panel__logs-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--mwi-text-muted);
+  position: sticky;
+  top: 0;
+  background: var(--mwi-bg-base); /* 与日志区同底色（sticky 滚动时不透出 panel 色） */
+  z-index: 1;
+}
+.panel__logs-title .ico {
+  width: 12px;
+  height: 12px;
+  color: var(--mwi-text-faint);
+}
+
+.logs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ===== 日志行：左侧色条（按级别）+ 时间 + 级别徽标 + 消息 ===== */
+.log {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px 4px 10px;
+  border-left: 2px solid var(--mwi-border-strong);
+  border-radius: 6px;
+  font-family: var(--mwi-font-mono);
+  font-size: 11px;
+  transition: background-color var(--mwi-fast);
+}
+.log:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+/* 只让最新一条有入场动画，避免整列表重绘闪烁 */
+.logs-list li:last-child {
+  animation: mwi-log-in 200ms var(--mwi-ease);
+}
+
+.log__time {
+  flex: none;
+  color: var(--mwi-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.log__level {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.log__msg {
+  flex: 1;
+  color: var(--mwi-text-secondary);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+/* 级别：左色条 + 徽标 + 消息三通道 */
+.log--info {
+  border-left-color: var(--mwi-border-strong);
+}
+.log--info .log__level {
+  color: var(--mwi-text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.log--warn {
+  border-left-color: var(--mwi-status-warn);
+  background: rgba(251, 191, 36, 0.05);
+}
+.log--warn .log__level {
+  color: var(--mwi-status-warn);
+  background: rgba(251, 191, 36, 0.12);
+}
+.log--warn .log__msg {
+  color: var(--mwi-status-warn);
+}
+
+.log--error {
+  border-left-color: var(--mwi-status-error);
+  background: rgba(248, 113, 113, 0.06);
+}
+.log--error .log__level {
+  color: var(--mwi-status-error);
+  background: rgba(248, 113, 113, 0.12);
+}
+.log--error .log__msg {
+  color: var(--mwi-status-error);
+}
+
+/* ===== 无日志空状态 ===== */
+.log-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px;
+  color: var(--mwi-text-faint);
+  font-size: 11px;
+  font-style: italic;
+  list-style: none;
+}
+.log-empty::before {
+  content: '';
+  width: 13px;
+  height: 13px;
+  flex: none;
+  background-color: var(--mwi-text-faint);
+  -webkit-mask: var(--mwi-ico-terminal) no-repeat center / contain;
+  mask: var(--mwi-ico-terminal) no-repeat center / contain;
+}
+
+/* ===== 未选中 / 账号不存在 空状态（纯 CSS 插画）===== */
+.panel__empty {
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--mwi-text-muted);
+  font-size: 12px;
+}
+.panel__empty::before {
+  content: '';
+  width: 34px;
+  height: 34px;
+  background-color: var(--mwi-text-faint);
+  -webkit-mask: var(--mwi-ico-cursor) no-repeat center / contain;
+  mask: var(--mwi-ico-cursor) no-repeat center / contain;
+  opacity: 0.85;
+}

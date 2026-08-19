@@ -1,0 +1,449 @@
+/* ==========================================================================
+   layout.css — 全局布局骨架：5 栏 grid + 工具栏 + 按钮系统 + 中部画布占位
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* 主控制台不滚动 */
+}
+
+body {
+  font-family: var(--mwi-font-ui);
+  font-size: var(--mwi-font-size);
+  color: var(--mwi-text-primary);
+  background-color: var(--mwi-bg-base);
+  display: grid;
+  grid-template-rows: var(--mwi-toolbar-h) 1fr var(--mwi-statusbar-h);
+  grid-template-columns: var(--mwi-sidebar-w) 1fr var(--mwi-right-w);
+  grid-template-areas:
+    "toolbar toolbar toolbar"
+    "sidebar center  panel"
+    "statusbar statusbar statusbar";
+}
+
+/* 禁止在 chrome 表面误选文本（面板/日志区保留可选） */
+.toolbar, .sidebar, .tabbar, .statusbar, .btn {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 选中态 */
+::selection {
+  background: rgba(123, 158, 255, 0.28);
+}
+
+/* 键盘焦点环 */
+:focus-visible {
+  outline: 2px solid var(--mwi-accent-line);
+  outline-offset: 1px;
+}
+
+/* ===== 内联 SVG 图标统一尺寸（静态 HTML 用真实 <svg>）===== */
+.ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  display: block;
+}
+
+/* ===== 细滚动条 ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mwi-border-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mwi-border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4C4D58;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ==========================================================================
+   顶 toolbar（毛玻璃）
+   ========================================================================== */
+.toolbar {
+  grid-area: toolbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--mwi-space-4);
+  background: rgba(24, 24, 29, 0.78);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border-bottom: 1px solid var(--mwi-divider);
+  box-shadow: var(--mwi-shadow-sm);
+  position: relative;
+  z-index: 20;
+}
+
+.toolbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar__logo {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6E90F7 0%, #7B9EFF 55%, #7C6CF6 100%);
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.toolbar__logo .ico {
+  width: 15px;
+  height: 15px;
+}
+
+.toolbar__brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.toolbar__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--mwi-text-primary);
+}
+
+.toolbar__subtitle {
+  font-size: 11px;
+  color: var(--mwi-text-muted);
+  letter-spacing: 0.2px;
+}
+
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 主 CTA：添加账号（accent 描边 + 淡蓝底） */
+#btn-add-account {
+  background: var(--mwi-accent-soft);
+  border-color: var(--mwi-accent-line);
+  color: var(--mwi-accent-strong);
+}
+#btn-add-account:hover {
+  background: rgba(123, 158, 255, 0.2);
+  border-color: var(--mwi-accent);
+  color: #C7D4FF;
+}
+
+/* 纯图标按钮（设置 / 刷新） */
+#btn-settings, #btn-refresh {
+  color: var(--mwi-text-muted);
+}
+#btn-settings:hover, #btn-refresh:hover {
+  color: var(--mwi-text-primary);
+  background: var(--mwi-bg-hover);
+}
+
+/* ==========================================================================
+   主体三栏
+   ========================================================================== */
+.main {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: var(--mwi-sidebar-w) 1fr var(--mwi-right-w);
+  overflow: hidden;
+}
+
+/* 左侧 sidebar（细部样式见 sidebar.css） */
+.sidebar {
+  grid-column: 1;
+  background: var(--mwi-bg-sidebar);
+  border-right: 1px solid var(--mwi-divider);
+  box-shadow: 1px 0 8px rgba(0, 0, 0, 0.25);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar__header {
+  padding: var(--mwi-space-3);
+  border-bottom: 1px solid var(--mwi-divider);
+}
+
+.sidebar__groups {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 12px;
+}
+
+/* ===== 中部 center：tab 栏 + 游戏视图 ===== */
+.center {
+  grid-column: 2;
+  display: grid;
+  grid-template-rows: var(--mwi-tabbar-h) 1fr;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--mwi-bg-0);
+}
+
+.tabbar {
+  background: var(--mwi-bg-panel);
+  border-bottom: 1px solid var(--mwi-divider);
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none; /* tab 区隐藏滚动条 */
+}
+.tabbar::-webkit-scrollbar {
+  display: none;
+}
+
+.tabbar__empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  color: var(--mwi-text-faint);
+  font-size: 11px;
+  padding: 0 8px;
+}
+.tabbar__empty::before {
+  content: '';
+  width: 12px;
+  height: 10px;
+  border: 1px solid var(--mwi-border-strong);
+  border-radius: 3px 3px 0 0;
+  flex: none;
+}
+
+.canvas {
+  position: relative;
+  overflow: hidden;
+  background: var(--mwi-bg-0);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  /* 极淡点阵网格，增加桌面质感 */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ===== 画布占位（WebContentsView 原生嵌入，仅保留占位提示）===== */
+.canvas__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--mwi-text-secondary);
+}
+
+.canvas__art {
+  width: min(420px, 62%);
+  animation: mwi-float 9s ease-in-out infinite;
+  filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.5));
+}
+.canvas__art .star { animation: mwi-twinkle 3.2s ease-in-out infinite; }
+.canvas__art .s2   { animation-delay: 1.1s; }
+.canvas__art .s3   { animation-delay: 2.1s; }
+.canvas__art .canvas__planet { animation: mwi-float 8s ease-in-out infinite; }
+.canvas__art .canvas__core   { animation: mwi-core 3.4s ease-in-out infinite; }
+
+.canvas__headline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--mwi-text-primary);
+}
+.canvas__headline .ico {
+  color: var(--mwi-accent);
+}
+
+.canvas__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--mwi-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--mwi-border-subtle);
+  padding: 3px 10px;
+  border-radius: var(--mwi-radius-pill);
+}
+.canvas__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mwi-status-warn);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+  animation: mwi-dot-pulse 1.8s ease-in-out infinite;
+}
+
+.canvas__hint {
+  font-size: 12px;
+  color: var(--mwi-text-muted);
+  max-width: 420px;
+  line-height: 1.7;
+}
+
+.canvas__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  list-style: none;
+  margin-top: 6px;
+}
+.canvas__chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--mwi-text-muted);
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: var(--mwi-radius-pill);
+}
+.canvas__chips .ico {
+  width: 12px;
+  height: 12px;
+  color: #8FA9FF;
+}
+
+/* ===== 右侧 panel（细部样式见 panel.css）===== */
+.panel {
+  grid-column: 3;
+  background: var(--mwi-bg-panel);
+  border-left: 1px solid var(--mwi-divider);
+  box-shadow: -1px 0 8px rgba(0, 0, 0, 0.25);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ===== 底部 statusbar（细部样式见 statusbar.css）===== */
+.statusbar {
+  grid-area: statusbar;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: rgba(24, 24, 29, 0.78);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border-top: 1px solid var(--mwi-divider);
+  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.2);
+  font-size: 11px;
+  color: var(--mwi-text-secondary);
+  position: relative;
+  z-index: 20;
+}
+
+/* ==========================================================================
+   按钮系统
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--mwi-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--mwi-fast),
+    color var(--mwi-fast),
+    border-color var(--mwi-fast),
+    box-shadow var(--mwi-fast),
+    transform 90ms var(--mwi-ease);
+}
+
+.btn:hover {
+  background: var(--mwi-bg-hover);
+  color: var(--mwi-text-primary);
+}
+
+.btn:active {
+  transform: translateY(0.5px);
+}
+
+.btn--ghost {
+  border-color: transparent;
+}
+
+.btn--icon {
+  width: 30px;
+  padding: 0;
+}
+
+.btn--accent {
+  background: linear-gradient(180deg, #8AA6FF 0%, #6E8FF5 100%);
+  border-color: rgba(123, 158, 255, 0.6);
+  color: #0D0F16;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn--accent:hover {
+  background: linear-gradient(180deg, #97B0FF 0%, #7B9EFF 100%);
+  color: #0D0F16;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn--accent:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn[disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.btn[disabled]:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}

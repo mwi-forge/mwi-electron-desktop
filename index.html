@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- img-src 增加 data:，用于 JS 动态生成元素以 CSS mask + data-URI SVG 渲染图标 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>MWI Multi-Account Manager</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/tabbar.css">
+  <link rel="stylesheet" href="css/panel.css">
+  <link rel="stylesheet" href="css/statusbar.css">
+</head>
+<body>
+  <!-- ===================== 顶 toolbar ===================== -->
+  <header class="toolbar" id="toolbar">
+    <div class="toolbar__brand">
+      <span class="toolbar__logo" aria-hidden="true">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.3 7.7L22 12l-7.7 2.3L12 22l-2.3-7.7L2 12l7.7-2.3L12 2z"/>
+        </svg>
+      </span>
+      <div class="toolbar__brand-text">
+        <span class="toolbar__title">MWI</span>
+        <span class="toolbar__subtitle">Multi-Account Manager</span>
+      </div>
+    </div>
+    <div class="toolbar__actions">
+      <button class="btn btn--icon" id="btn-toggle-sidebar" title="折叠/展开左侧账号树">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M6 2v12"/></svg>
+      </button>
+      <button class="btn btn--icon" id="btn-toggle-panel" title="折叠/展开右侧详情面板">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2" width="13" height="12" rx="2"/><path d="M10 2v12"/></svg>
+      </button>
+      <button class="btn btn--ghost" id="btn-add-account" title="添加账号">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span>添加账号</span>
+      </button>
+      <button class="btn btn--ghost btn--icon" id="btn-settings" title="设置" aria-label="设置">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h8M17 7h3M4 17h3M11 17h9"/>
+          <circle cx="15" cy="7" r="2.2"/>
+          <circle cx="8" cy="17" r="2.2"/>
+        </svg>
+      </button>
+      <button class="btn btn--ghost btn--icon" id="btn-refresh" title="刷新" aria-label="刷新">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.6-6.4"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== 主体三栏 ===================== -->
+  <main class="main">
+    <!-- 左侧账号分组树 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__header">
+        <button class="btn btn--accent btn--block" id="btn-quick-add">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span>新账号</span>
+        </button>
+      </div>
+      <div class="sidebar__groups" id="sidebar-groups">
+        <div class="sidebar__empty">暂无账号，点击上方添加</div>
+      </div>
+    </aside>
+
+    <!-- 中部：tab 栏 + 游戏视图 -->
+    <section class="center">
+      <div class="tabbar" id="tabbar">
+        <div class="tabbar__empty">中部 tab 区（启动账号后出现）</div>
+      </div>
+      <div class="canvas" id="canvas">
+        <div class="canvas__placeholder">
+          <div class="canvas__art" aria-hidden="true">
+            <svg viewBox="0 0 260 170" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="游戏视图占位示意">
+              <defs>
+                <linearGradient id="mwWnd" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#181826"/>
+                  <stop offset="1" stop-color="#0F0F16"/>
+                </linearGradient>
+                <radialGradient id="mwGlow" cx="0.5" cy="0.42" r="0.62">
+                  <stop offset="0" stop-color="#7B9EFF" stop-opacity="0.16"/>
+                  <stop offset="1" stop-color="#7B9EFF" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="mwPlanet" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#39456E"/>
+                  <stop offset="1" stop-color="#222A4A"/>
+                </linearGradient>
+              </defs>
+              <!-- 窗口外框 -->
+              <rect x="2" y="2" width="256" height="166" rx="16" stroke="#2A2A36" fill="url(#mwWnd)"/>
+              <path d="M2 30h256" stroke="#1F1F2A"/>
+              <!-- 标题栏圆点 -->
+              <circle cx="18" cy="16" r="2.4" fill="#3A3A48"/>
+              <circle cx="26" cy="16" r="2.4" fill="#3A3A48"/>
+              <circle cx="34" cy="16" r="2.4" fill="#3A3A48"/>
+              <!-- 内部辉光 -->
+              <rect x="2" y="30" width="256" height="138" fill="url(#mwGlow)"/>
+              <!-- 星野 -->
+              <g>
+                <circle class="star" cx="58" cy="58" r="1.6" fill="#C7D2FE"/>
+                <circle class="star s2" cx="112" cy="44" r="1.2" fill="#F1F2F6"/>
+                <circle class="star s3" cx="180" cy="62" r="1.5" fill="#93ACFF"/>
+                <circle class="star s2" cx="206" cy="46" r="1" fill="#F1F2F6"/>
+                <circle class="star" cx="88" cy="98" r="1.2" fill="#C7D2FE"/>
+                <circle class="star s3" cx="152" cy="118" r="1.7" fill="#93ACFF"/>
+                <circle class="star s2" cx="64" cy="132" r="1.2" fill="#F1F2F6"/>
+                <circle class="star" cx="198" cy="124" r="1.3" fill="#C7D2FE"/>
+                <circle class="star s3" cx="228" cy="86" r="1.2" fill="#93ACFF"/>
+                <circle class="star s2" cx="40" cy="104" r="1" fill="#F1F2F6"/>
+                <circle class="star" cx="236" cy="140" r="1.5" fill="#C7D2FE"/>
+              </g>
+              <!-- 行星 -->
+              <g class="canvas__planet">
+                <ellipse cx="196" cy="118" rx="35" ry="9.5" stroke="#93ACFF" stroke-opacity="0.28" transform="rotate(-16 196 118)"/>
+                <circle cx="196" cy="118" r="21" fill="url(#mwPlanet)"/>
+                <circle cx="189" cy="112" r="3.4" fill="#57639A" opacity="0.75"/>
+                <circle cx="202" cy="124" r="2.2" fill="#57639A" opacity="0.6"/>
+              </g>
+              <!-- 中心启动核心 -->
+              <g class="canvas__core">
+                <circle cx="130" cy="86" r="30" fill="#7B9EFF" fill-opacity="0.05"/>
+                <circle cx="130" cy="86" r="18" fill="#7B9EFF" fill-opacity="0.09"/>
+                <path d="M123 76.5v19c0 .9 1 1.5 1.8 1l14.6-9.4c.7-.5.7-1.5 0-2L124.8 75.5c-.8-.5-1.8.1-1.8 1z" fill="#8FA9FF" fill-opacity="0.85"/>
+              </g>
+            </svg>
+          </div>
+          <div class="canvas__headline">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5"/>
+              <path d="M10 8.5v7l6-3.5-6-3.5z"/>
+            </svg>
+            <span>中部游戏视图区</span>
+            <span class="canvas__status"><i class="canvas__status-dot"></i>未连接视图</span>
+          </div>
+          <p class="canvas__hint">启动账号后，此处将由 WebContentsView 原生嵌入该账号的游戏画面</p>
+          <ul class="canvas__chips">
+            <li>
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="9" rx="2"/>
+                <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+              </svg>
+              隔离会话
+            </li>
+            <li>
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 11c0 4-1.5 6-4 8"/>
+                <path d="M8 7a8 8 0 0 1 8 8"/>
+                <path d="M5 14a7 7 0 0 1 14 0"/>
+                <path d="M8.5 15a4 4 0 0 1 7 0"/>
+                <path d="M12 11v5"/>
+              </svg>
+              独立指纹
+            </li>
+            <li>
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5"/>
+                <path d="M3.5 12h17"/>
+                <path d="M12 3.5c2.5 2.3 3.8 5.2 3.8 8.5s-1.3 6.2-3.8 8.5c-2.5-2.3-3.8-5.2-3.8-8.5s1.3-6.2 3.8-8.5z"/>
+              </svg>
+              代理接入
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右侧：详情 + 日志 -->
+    <aside class="panel" id="panel">
+      <div class="panel__header">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.5"/>
+          <path d="M12 11v4"/>
+          <path d="M12 7.6h.01"/>
+        </svg>
+        <span class="panel__title">详情</span>
+      </div>
+      <div class="panel__body" id="panel-body">
+        <div class="panel__empty">未选中账号</div>
+      </div>
+      <div class="panel__logs" id="panel-logs">
+        <div class="panel__logs-title">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 17l6-5-6-5"/>
+            <path d="M12 19h8"/>
+          </svg>
+          <span>最近日志</span>
+        </div>
+        <ul class="logs-list" id="logs-list"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ===================== 底部状态条 ===================== -->
+  <footer class="statusbar" id="statusbar">
+    <span class="statusbar__item" id="stat-views">views 0/6</span>
+    <span class="statusbar__sep">·</span>
+    <span class="statusbar__item" id="stat-mem">内存 --</span>
+    <span class="statusbar__sep">·</span>
+    <span class="statusbar__item" id="stat-cpu">CPU --</span>
+    <span class="statusbar__sep">·</span>
+    <span class="statusbar__item" id="stat-uptime">运行时长 00:00:00</span>
+    <span class="statusbar__meta">MWI Multi-Account Manager</span>
+  </footer>
+
+  <script src="js/store.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/tabbar.js"></script>
+  <script src="js/panel.js"></script>
+  <script src="js/statusbar.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

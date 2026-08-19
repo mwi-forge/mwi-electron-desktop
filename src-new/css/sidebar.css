@@ -1,0 +1,362 @@
+/* ==========================================================================
+   sidebar.css — 左侧分组树 + 账号行 + 模态框
+   注意：JS 会整体重绘 #sidebar-groups 与模态框，所有样式必须只依赖
+   既有 class / data 属性（group / account / btn-icon / modal-* 等）。
+   ========================================================================== */
+
+/* ===== 快捷添加按钮 ===== */
+#btn-quick-add {
+  height: 34px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+/* ===== 分组 ===== */
+.group { padding: 0; }
+
+.group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  margin: 0 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mwi-text-secondary);
+  transition: background-color var(--mwi-fast), color var(--mwi-fast);
+}
+.group__header:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mwi-text-primary);
+}
+.group__header:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* caret：JS 写 'v' / '>' 文本，隐藏后用 mask 画 chevron；
+   折叠方向用 :has() 判断 —— 折叠时 JS 不渲染 .account-list */
+.group__caret {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  font-size: 0;
+  line-height: 0;
+  color: var(--mwi-text-faint);
+  transition: color var(--mwi-fast);
+}
+.group__caret::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-chevron-right) no-repeat center / contain;
+  mask: var(--mwi-ico-chevron-right) no-repeat center / contain;
+}
+.group:has(.account-list) .group__caret::before {
+  -webkit-mask-image: var(--mwi-ico-chevron-down);
+  mask-image: var(--mwi-ico-chevron-down);
+}
+.group__header:hover .group__caret {
+  color: var(--mwi-text-muted);
+}
+
+.group__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group__count {
+  font-family: var(--mwi-font-mono);
+  font-size: 10px;
+  color: var(--mwi-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 账号列表 ===== */
+.account-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+/* 树状引导线（从 caret 列延伸至每个账号行） */
+.account-list::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 2px;
+  bottom: 2px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.account {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px 0 32px;
+  margin: 0 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--mwi-text-secondary);
+  transition: background-color var(--mwi-fast), color var(--mwi-fast), box-shadow var(--mwi-fast);
+}
+.account:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mwi-text-primary);
+}
+
+/* 选中态：淡蓝底 + accent 内描边 + 左侧 2px 指示条（Linear 风格选中行） */
+.account--focused {
+  background: rgba(123, 158, 255, 0.10);
+  color: var(--mwi-text-primary);
+  box-shadow: inset 0 0 0 1px var(--mwi-accent-line), inset 2px 0 0 var(--mwi-accent);
+}
+
+/* ===== 状态点（色点双通道；JS 只写文本符号，隐藏后用纯 CSS 画点）===== */
+.account__dot,
+.tab__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  font-size: 0;
+  line-height: 0;
+}
+.account__dot--stopped,
+.tab__dot--stopped {
+  background: var(--mwi-status-stopped);
+}
+.account__dot--running,
+.tab__dot--running {
+  background: var(--mwi-status-running);
+  box-shadow: 0 0 6px var(--mwi-glow-running);
+  animation: mwi-dot-running 2.4s ease-in-out infinite;
+}
+.account__dot--error,
+.tab__dot--error {
+  background: var(--mwi-status-error);
+  box-shadow: 0 0 6px var(--mwi-glow-error);
+  animation: mwi-pulse 1.6s ease-in-out infinite;
+}
+/* tab 内的 stopped 实为「启动中」：旋转 ring spinner（见 tabbar.css） */
+.tab .tab__dot--stopped {
+  background: transparent;
+  border: 2px solid var(--mwi-accent-line);
+  border-top-color: var(--mwi-status-starting);
+  box-shadow: none;
+  animation: mwi-spin 0.9s linear infinite;
+}
+
+.account__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 行内操作按钮（[E] / [X] 文本隐藏，mask 画图标）===== */
+.account__actions {
+  display: none;
+  gap: 4px;
+  flex: none;
+}
+.account:hover .account__actions,
+.account--focused .account__actions {
+  display: inline-flex;
+}
+
+.btn-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 6px;
+  color: var(--mwi-text-muted);
+  cursor: pointer;
+  font-size: 0;
+  line-height: 0;
+  transition:
+    background-color var(--mwi-fast),
+    color var(--mwi-fast),
+    border-color var(--mwi-fast);
+}
+.btn-icon::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-pencil) no-repeat center / contain;
+  mask: var(--mwi-ico-pencil) no-repeat center / contain;
+}
+.btn-icon[data-action='remove']::before {
+  -webkit-mask-image: var(--mwi-ico-trash);
+  mask-image: var(--mwi-ico-trash);
+}
+.btn-icon:hover {
+  background: var(--mwi-bg-hover);
+  border-color: var(--mwi-border-strong);
+  color: var(--mwi-text-primary);
+}
+.btn-icon[data-action='remove']:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--mwi-status-error);
+}
+
+/* ===== 空状态：无账号（JS 重绘为 .sidebar__empty，纯 CSS 插画）===== */
+.sidebar__empty {
+  position: relative;
+  padding: 52px 16px 36px;
+  text-align: center;
+  color: var(--mwi-text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.sidebar__empty::before {
+  content: '';
+  display: block;
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 14px;
+  background: var(--mwi-text-faint);
+  -webkit-mask: var(--mwi-ico-window) no-repeat center / contain;
+  mask: var(--mwi-ico-window) no-repeat center / contain;
+}
+/* 图标角上的「+」小徽标：提示可添加 */
+.sidebar__empty::after {
+  content: '';
+  position: absolute;
+  top: 74px;
+  left: calc(50% + 11px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background:
+    linear-gradient(var(--mwi-text-muted), var(--mwi-text-muted)) center / 8px 1.5px no-repeat,
+    linear-gradient(var(--mwi-text-muted), var(--mwi-text-muted)) center / 1.5px 8px no-repeat,
+    var(--mwi-bg-sidebar);
+  border: 1px solid var(--mwi-border-strong);
+}
+
+/* ==========================================================================
+   模态框（JS 动态生成，仅依赖 modal-* class）
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 7, 10, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 100;
+  animation: mwi-backdrop-in 160ms ease;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 480px;
+  max-height: 84vh;
+  overflow-y: auto;
+  background: var(--mwi-bg-panel);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: var(--mwi-radius-xl);
+  box-shadow: var(--mwi-shadow-lg);
+  padding: 22px;
+  z-index: 101;
+  animation: mwi-modal-in 220ms var(--mwi-ease);
+}
+
+.modal__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: var(--mwi-text-primary);
+}
+.modal__title::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background-color: var(--mwi-accent);
+  -webkit-mask: var(--mwi-ico-user) no-repeat center / contain;
+  mask: var(--mwi-ico-user) no-repeat center / contain;
+}
+
+.modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mwi-text-secondary);
+}
+
+.modal__form input,
+.modal__form select {
+  height: 34px;
+  padding: 0 10px;
+  background: var(--mwi-bg-inset);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 8px;
+  color: var(--mwi-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  outline: none;
+  transition: border-color var(--mwi-fast), box-shadow var(--mwi-fast);
+}
+.modal__form input:focus,
+.modal__form select:focus {
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+.modal__form input::placeholder {
+  color: var(--mwi-text-faint);
+}
+
+.modal__fieldset {
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: var(--mwi-radius);
+  padding: 14px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal__fieldset legend {
+  font-size: 11px;
+  color: var(--mwi-text-muted);
+  padding: 0 6px;
+  letter-spacing: 0.4px;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

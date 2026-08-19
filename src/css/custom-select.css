@@ -1,0 +1,134 @@
+/* ==========================================================================
+   custom-select.css — 自定义 listbox（替代原生 <select> 让 options 走 DSH 深色主题）
+   浏览器/系统限制：<option> 列表由 OS 渲染（macOS Chrome = 系统浅色面板），
+   CSS 完全碰不到。用 div + role=listbox/option + 自管理弹层重写。
+   ========================================================================== */
+
+/* === 容器：替换 <select> 位置的根 div === */
+.custom-select {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+/* === 触发按钮（折叠态显示） === */
+.custom-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  background: var(--mwi-bg-inset);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 8px;
+  color: var(--mwi-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition: border-color var(--mwi-fast), box-shadow var(--mwi-fast);
+}
+.custom-select__trigger:hover {
+  border-color: var(--mwi-border-strong);
+}
+.custom-select--open .custom-select__trigger,
+.custom-select__trigger:focus-visible {
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+
+/* 触发按钮内：当前选中文本 */
+.custom-select__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 占位文字（未选时） */
+.custom-select__label--placeholder {
+  color: var(--mwi-text-faint);
+}
+
+/* 触发按钮内：右侧 chevron（mask 画 SVG） */
+.custom-select__chevron {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  background-color: var(--mwi-text-muted);
+  -webkit-mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+  mask: var(--mwi-ico-chevron-down) no-repeat center / contain;
+  transition: transform var(--mwi-fast);
+}
+.custom-select--open .custom-select__chevron {
+  transform: rotate(180deg);
+}
+
+/* === 弹层 options 列表（绝对定位在 trigger 下方） === */
+.custom-select__popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50; /* 高于 form 内其他元素，避开遮挡 */
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--mwi-bg-elevated);
+  border: 1px solid var(--mwi-border-strong);
+  border-radius: 8px;
+  box-shadow: var(--mwi-shadow-lg);
+  padding: 4px 0;
+  animation: mwi-rise 140ms var(--mwi-ease);
+}
+
+/* === 单个 option 行 === */
+.custom-select__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--mwi-text-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--mwi-fast);
+}
+.custom-select__option:hover,
+.custom-select__option--highlight {
+  background: var(--mwi-bg-hover);
+}
+.custom-select__option--selected {
+  color: var(--mwi-accent-strong);
+  background: var(--mwi-accent-soft);
+  font-weight: 600;
+}
+.custom-select__option--selected.custom-select__option--highlight {
+  background: var(--mwi-accent-soft);
+  filter: brightness(1.15);
+}
+/* 选中项左侧的对勾（mask SVG） */
+.custom-select__check {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: var(--mwi-ico-check) no-repeat center / contain;
+  mask: var(--mwi-ico-check) no-repeat center / contain;
+  visibility: hidden;
+}
+.custom-select__option--selected .custom-select__check {
+  visibility: visible;
+}
+
+/* 隐藏 native select（保留为 hidden input 数据源，给 form submit 用） */
+.custom-select__native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  left: -9999px;
+}

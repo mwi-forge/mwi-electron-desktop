@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../src/css/tokens.css">
+<link rel="stylesheet" href="../src/css/layout.css">
+<link rel="stylesheet" href="../src/css/sidebar.css">
+<link rel="stylesheet" href="../src/css/panel.css">
+<link rel="stylesheet" href="../src/css/tabbar.css">
+<link rel="stylesheet" href="../src/css/statusbar.css">
+<style>body{background:#141417}</style>
+</head><body>
+<div class="modal-backdrop" id="modal-backdrop"></div>
+<div class="modal" role="dialog">
+<div class="modal__title">编辑账号</div>
+<form class="modal__form" id="account-form">
+<label>名称<input name="name" required value="阿斯蒂芬" placeholder="主号"></label>
+<label>URL<input name="url" required value="https://www.milkywayidle.com/game" placeholder="https://www.milkywayidle.com/game"></label>
+<label>分组<select name="groupId"><option value="grp_default" selected>默认分组</option><option value="grp_farm">农场号</option></select></label>
+<label>宽度（px）<input type="number" name="width" value="360"></label>
+<label>高度（px）<input type="number" name="height" value="640"></label>
+<label>指纹预设<input name="fingerprintPreset" value="preset_01"></label>
+<fieldset class="modal__fieldset"><legend>代理（可选）</legend>
+<label>类型<select name="proxyType"><option value="" selected>不使用</option><option value="socks5">SOCKS5</option></select></label>
+<label>主机<input name="proxyHost" value="" placeholder="1.2.3.4"></label>
+</fieldset>
+<div class="modal__actions"><button type="button" class="btn" id="modal-cancel">取消</button><button type="submit" class="btn btn--accent">保存</button></div>
+</form></div></body></html>
