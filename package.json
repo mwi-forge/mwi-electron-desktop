@@ -111,11 +111,9 @@
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "AppImage"
       ],
       "category": "Utility",
-      "compression": "gzip",
       "extraResources": [
         {
           "from": "resources/mihomo/linux",
