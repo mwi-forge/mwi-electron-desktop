@@ -22,7 +22,7 @@ main:
         - name: build-linux
           script: |
             set -e
-            npm run dist:linux
+            NODE_OPTIONS="--experimental-require-module" npm run dist:linux
         - name: list-output
           script: |
             set -e
@@ -51,7 +51,7 @@ main:
         - name: build-linux
           script: |
             set -e
-            npm run dist:linux
+            NODE_OPTIONS="--experimental-require-module" npm run dist:linux
         - name: list-output
           script: |
             set -e
