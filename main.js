@@ -7,6 +7,7 @@ const ipc = require('./lib/ipc');
 const views = require('./lib/views');
 const logs = require('./lib/logs');
 const metrics = require('./lib/metrics');
+const alert = require('./lib/alert');
 
 // 资源优化：默认启用 GPU（反检测优先，避免 GPU 指纹缺失暴露无头特征）；
 // MWI_HW_ACCEL=0 时回退省电模式
@@ -46,6 +47,7 @@ if (!gotTheLock) {
 
     // Phase 2: WebContentsView 池初始化 + 事件桥接到渲染进程
     views.setMainWindow(mainWindow);
+    alert.setMainWindow(mainWindow);
     views.onChange((evt) => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
       if (evt.type === 'state') {
@@ -81,6 +83,7 @@ if (!gotTheLock) {
     }
 
     mainWindow.on('closed', () => {
+      alert.resetPending();
       mainWindow = null;
     });
   }

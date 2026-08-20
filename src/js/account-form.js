@@ -266,7 +266,7 @@
         var subId = subsSelect.value;
         var nodeId = nodeSelect.value;
         if (!subId || !nodeId) {
-          alert(t('account.form.alert.select_sub_node'));
+          window.mwiAlert.alert({ type: 'warn', message: t('account.form.alert.select_sub_node') });
           submitBtn.disabled = false;
           cancelBtn.disabled = false;
           return;
@@ -295,7 +295,7 @@
         }
         if (onCloseCb) onCloseCb({ ok: true });
       } catch (e) {
-        alert(t('account.form.alert.fail', { message: e.message || e }));
+        window.mwiAlert.alert({ type: 'error', message: t('account.form.alert.fail', { message: e.message || e }) });
         submitBtn.disabled = false;
         cancelBtn.disabled = false;
       }

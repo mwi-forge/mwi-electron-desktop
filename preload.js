@@ -146,4 +146,16 @@ contextBridge.exposeInMainWorld('api', {
     version: '0.1.0',
     platform: process.platform,
   },
+
+  // === 应用内统一弹窗（替代 dialog.showMessageBox）===
+  // 主进程通过 mainWindow.webContents.send('ui:dialog', ...) 触发；
+  // 渲染进程 modal.js 监听 onShow 渲染 DOM，点按钮后调 reply 回执。
+  dialog: {
+    onShow: (cb) => {
+      const h = (_e, payload) => cb(payload);
+      ipcRenderer.on('ui:dialog', h);
+      return () => ipcRenderer.removeListener('ui:dialog', h);
+    },
+    reply: (id, idx) => ipcRenderer.send('ui:dialog:reply', id, idx),
+  },
 });

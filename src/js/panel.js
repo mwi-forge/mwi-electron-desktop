@@ -78,7 +78,7 @@
     var startBtn = bodyRoot.querySelector('[data-action="start"]');
     if (startBtn) startBtn.addEventListener('click', async function () {
       var r = await window.api.views.start(acc.id);
-      if (r && r.ok === false && r.error !== 'cancelled') alert(t('panel.alert.start_failed', { error: r.error || 'unknown' }));
+      if (r && r.ok === false && r.error !== 'cancelled') window.mwiAlert.alert({ type: 'error', message: t('panel.alert.start_failed', { error: r.error || 'unknown' }) });
     });
     var stopBtn = bodyRoot.querySelector('[data-action="stop"]');
     if (stopBtn) stopBtn.addEventListener('click', async function () {
@@ -100,17 +100,17 @@
         await navigator.clipboard.writeText(JSON.stringify(acc, null, 2));
         console.log('[mwi panel] copied config for', acc.id);
       } catch (e) {
-        alert(t('panel.alert.copy_failed', { message: e.message || e }));
+        window.mwiAlert.alert({ type: 'error', message: t('panel.alert.copy_failed', { message: e.message || e }) });
       }
     });
     var tmBtn = bodyRoot.querySelector('[data-action="tampermonkey"]');
     if (tmBtn) tmBtn.addEventListener('click', async function () {
       var r = await window.api.tampermonkey.openPanel(acc.id);
-      if (r && r.ok === false) alert(t('panel.alert.tm_open_failed', { error: r.error || 'unknown' }));
+      if (r && r.ok === false) window.mwiAlert.alert({ type: 'error', message: t('panel.alert.tm_open_failed', { error: r.error || 'unknown' }) });
     });
     var removeBtn = bodyRoot.querySelector('[data-action="remove"]');
     if (removeBtn) removeBtn.addEventListener('click', async function () {
-      if (!confirm(t('panel.confirm.remove', { name: acc.name }))) return;
+      if (!await window.mwiAlert.confirm({ message: t('panel.confirm.remove', { name: acc.name }) })) return;
       if (isRunning) await window.api.views.stop(acc.id);
       await window.api.accounts.remove(acc.id);
       window.mwiStore.set({ focusedAccountId: null });

@@ -184,7 +184,7 @@
     if (window.mwiTabbar && window.mwiTabbar.openSubscriptionsTab) {
       window.mwiTabbar.openSubscriptionsTab();
     } else {
-      alert(t('sidebar.alert.subs_missing'));
+      window.mwiAlert.alert({ type: 'warn', message: t('sidebar.alert.subs_missing') });
     }
   });
   if (quickAddBtn) quickAddBtn.addEventListener('click', function () { openModal(null); });
