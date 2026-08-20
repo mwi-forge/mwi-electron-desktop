@@ -1,0 +1,20 @@
+# <type>(<scope>): <subject>  ← 中文一句话，<= 50 字，不带句号
+#
+# <body>  ← 选填：动机 / 取舍 / 反触发 / 关联 issue
+#
+# <footer>  ← 选填：BREAKING CHANGE / Closes #xxx
+#
+# type 可选:
+#   feat / fix / refactor / perf / docs / test / build / ci / chore / style / revert
+#
+# 示例:
+# feat(account-form): 加 macos arm64 mihomo 二进制分发
+#
+# 之前 resources/mihomo/ 只含 macOS arm64 单平台，linux 包运行时会
+# 因为 mihomo 二进制格式错直接挂。下载 1.19.25 全平台 4 个二进制
+# 改成 per-platform 目录分发，electron-builder 按平台选对应二进制。
+#
+# Closes #42
+#
+# 备注: 严禁 emoji (项目文档风格一致)
+#
