@@ -8,7 +8,7 @@
 - lib/views.js（注入时机修正 + WebRTC 策略生效 + UA/acceptLanguages 联动）
 - main.js（GPU 默认启用 + MWI_HW_ACCEL=0 逃生口 + SELFTEST_FP2）
 - src/js/sidebar.js（指纹预设下拉 + UA 输入框）
-- README.md 与 docs/项目背景及方案（交接）#20260818.md（反关联章节同步为真实能力）
+- README.md 与 docs/项目背景及方案（交接）20260818.md（反关联章节同步为真实能力）
 
 ## lib/fingerprint.js 新 API 契约（subagent A 必须导出）
 
@@ -60,7 +60,7 @@ Profile 结构：
 
 ## 文档更新（subagent C）
 - README.md：反关联能力/指纹伪装/已知限制更新为真实能力，资源优化行改 GPU 默认启用。
-- docs/项目背景及方案（交接）#20260818.md：4.3 指纹伪装表格与已知限制同步。
+- docs/项目背景及方案（交接）20260818.md：4.3 指纹伪装表格与已知限制同步。
 - 全文不出现 emoji。
 
 ## 验证
