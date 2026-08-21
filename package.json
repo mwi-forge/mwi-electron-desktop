@@ -1,7 +1,7 @@
 {
   "name": "mwi-electron-desktop",
-  "version": "0.1.3",
-  "description": "Electron 桌面端多账号浏览器：在同一台电脑同时登录多个网页游戏账号，账号环境完全隔离，支持油猴脚本扩展，资源占用低且具备反关联能力",
+  "version": "0.9.0",
+  "description": "Electron Desktop Multi-Account Browser: simultaneously log in to multiple web game accounts on the same computer, with completely isolated account environments, Tampermonkey script extension support, low resource consumption, and anti-association capabilities.",
   "main": "main.js",
   "scripts": {
     "start": "node scripts/build-icon-assets.mjs && electron .",
@@ -29,10 +29,8 @@
     "tampermonkey"
   ],
   "author": {
-    "name": "shenhuanjie",
-    "email": "shenhuanjie@users.noreply.github.com"
+    "name": "KUN",
   },
-  "homepage": "https://cnb.cool/shenhuanjie/mwi-miuoooooo/mwi-electron-desktop",
   "license": "MIT",
   "devDependencies": {
     "electron": "^43.4.0",
