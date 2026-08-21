@@ -37,3 +37,7 @@ tmp_*
 .npm-cache/
 .playwright-browsers/
 .distwin.pid
+
+# 调试产物（截图/状态 dump）
+tests/screenshots/
+tests/view-dump.json

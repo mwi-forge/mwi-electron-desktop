@@ -13,6 +13,24 @@
 
 3. 验证：此目录应包含 manifest.json 文件
 
+## 重要：更新扩展后必须重打兼容补丁
+
+Electron 43 没有实现扩展的 `chrome.notifications / contextMenus / cookies / downloads / commands`
+这几个 API，Violentmonkey / Tampermonkey 的 MV2 后台脚本初始化时会因此崩溃（options 页红字
+`Violentmonkey cannot connect to the background page.`）。仓库自带兼容层：
+
+- `background/mwi-shim.js`：在后台脚本之前执行，为缺失 API 打桩；
+- `manifest.json` 的 `background.scripts` 第一项已指向该 shim。
+
+**每次重新解压扩展（升级/替换）后，必须重跑**：
+
+```
+node scripts/patch-tampermonkey-shim.js
+```
+
+脚本幂等，已打补丁时会提示无需改动。打桩的 API 在 Electron 中本就不存在，功能静默降级
+（系统通知 / 右键菜单 / GM_cookie / downloads），不影响用户脚本核心链路。
+
 ## 注意
 
 - 此目录会被 electron-builder 打包到 extraResources/tampermonkey/

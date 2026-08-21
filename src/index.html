@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/settings-tab.css">
   <link rel="stylesheet" href="css/custom-select.css">
   <link rel="stylesheet" href="css/subscription-tab.css">
+  <link rel="stylesheet" href="css/modal.css">
 </head>
 <body>
   <!-- ===================== 顶 toolbar ===================== -->
@@ -216,6 +217,7 @@
     <span class="statusbar__meta" data-i18n-text="brand.app_meta">MWI Multi-Account Manager</span>
   </footer>
 
+  <script src="js/modal.js"></script>  <!-- 统一弹窗基础设施：监听主进程 ui:dialog → 渲染 DOM → reply 回执；必须在所有可能弹窗的脚本之前 -->
   <script src="js/store.js"></script>
   <script src="js/i18n.js"></script>  <!-- i18n.js 必须在 sidebar/tabbar 之前：它们的 IIFE 顶层要订阅 mwiI18n.onChange（per 2026-08-19 sidebar bug 修复） -->
   <script src="js/sidebar.js"></script>

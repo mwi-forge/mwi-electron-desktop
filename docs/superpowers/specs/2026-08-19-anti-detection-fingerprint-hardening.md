@@ -47,7 +47,7 @@ Profile 结构：
 
 ## lib/views.js 改动（subagent B）
 1. 注入时机：did-start-navigation 且 isMainFrame===true 时 executeJavaScript(generateFullInjectScript(profile))；profile 在 startView 内每账号构建一次。
-2. WebRTC：代理设置后 await sess.setWebRTCIPHandlingPolicy(account.webRtcPolicy || 'disable_non_proxied_udp')。
+2. WebRTC：代理设置后 await view.webContents.setWebRTCIPHandlingPolicy(account.webRtcPolicy || 'disable_non_proxied_udp')（Electron 43+：Session 上的同名 API 已被官方移除，改用 WebContents 实例方法；Session 引用 sess 仍保留用于 setUserAgent / webRequest.onBeforeSendHeaders / loadExtension 等仍生效的方法）。
 3. UA：account.userAgent 优先，否则 buildFingerprint(account).ua；sess.setUserAgent(ua, profile.acceptLanguages)。
 
 ## main.js 改动（subagent B）

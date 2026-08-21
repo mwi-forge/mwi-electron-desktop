@@ -99,14 +99,14 @@
       btn.addEventListener('click', async function () {
         var name = document.getElementById('subs-name').value.trim();
         var url = document.getElementById('subs-url').value.trim();
-        if (!url) { alert(t('subscription.tab.alert.url_required')); return; }
+        if (!url) { window.mwiAlert.alert({ type: 'warn', message: t('subscription.tab.alert.url_required') }); return; }
         btn.disabled = true; btn.textContent = t('subscription.tab.btn.importing');
         try {
           var r = await window.api.subscriptions.add({ name: name, url: url });
-          if (!r.ok) { alert(t('subscription.tab.alert.import_fail', { error: r.error })); return; }
+          if (!r.ok) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.import_fail', { error: r.error }) }); return; }
           document.getElementById('subs-url').value = '';
           await refreshList();
-        } catch (e) { alert(t('subscription.tab.alert.import_err', { message: e.message })); }
+        } catch (e) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.import_err', { message: e.message }) }); }
         finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.import'); }
       });
     });
@@ -116,7 +116,7 @@
         var id = btn.dataset.id;
         btn.disabled = true; btn.textContent = t('subscription.tab.btn.refreshing');
         try { await window.api.subscriptions.refresh(id); await refreshList(); }
-        catch (e) { alert(t('subscription.tab.alert.refresh_fail', { message: e.message })); }
+        catch (e) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.refresh_fail', { message: e.message }) }); }
         finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.refresh'); }
       });
     });
@@ -126,7 +126,7 @@
         var id = btn.dataset.id;
         btn.disabled = true; btn.textContent = t('subscription.tab.btn.measuring_all');
         try { await window.api.subscriptions.measureNodes(id); await showNodes(id); }
-        catch (e) { alert(t('subscription.tab.alert.measure_fail', { message: e.message })); }
+        catch (e) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.measure_fail', { message: e.message }) }); }
         finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.measure_all'); }
       });
     });
@@ -138,9 +138,9 @@
     q("[data-action='delete']", function (btn) {
       btn.addEventListener('click', async function () {
         var id = btn.dataset.id;
-        if (!confirm(t('subscription.tab.confirm.delete', { id: id }))) return;
+        if (!await window.mwiAlert.confirm({ message: t('subscription.tab.confirm.delete', { id: id }) })) return;
         try { await window.api.subscriptions.delete(id); await refreshList(); }
-        catch (e) { alert(t('subscription.tab.alert.delete_fail', { message: e.message })); }
+        catch (e) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.delete_fail', { message: e.message }) }); }
       });
     });
 
@@ -151,7 +151,7 @@
         try {
           var r = await window.api.subscriptions.measureNode(subId, nodeId);
           if (r.ok) await showNodes(subId);
-        } catch (e) { alert(t('subscription.tab.alert.measure_one_fail', { message: e.message })); }
+        } catch (e) { window.mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.measure_one_fail', { message: e.message }) }); }
         finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.measure_one'); }
       });
     });

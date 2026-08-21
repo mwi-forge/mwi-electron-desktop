@@ -25,6 +25,7 @@
   },
   "background": {
     "scripts": [
+      "background/mwi-shim.js",
       "background/index.js"
     ]
   },

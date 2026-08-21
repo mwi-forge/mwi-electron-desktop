@@ -105,10 +105,17 @@
         window.mwiStore.set({ focusedAccountId: id });
         var cur = window.mwiStore.get();
         if ((cur.runningIds || []).indexOf(id) !== -1) {
+          // 已启动：focus game tab + resume focused view
           window.api.views.focus(id).catch(function () {});
+          if (window.mwiTabbar && window.mwiTabbar.clearPreviewTab) {
+            window.mwiTabbar.clearPreviewTab();
+            window.mwiTabbar.render();
+          }
         } else {
-          if (window.mwiTabbar && window.mwiTabbar.closeAllFormTabs) {
-            window.mwiTabbar.closeAllFormTabs();
+          // 未启动：创建 preview tab + 显示 placeholder 默认界面
+          // 切到其他 tab 时自动关闭（focusGameTab / focusFormTab / closeAllFormTabs 内清）
+          if (window.mwiTabbar && window.mwiTabbar.setPreviewTab) {
+            window.mwiTabbar.setPreviewTab(id);
           }
         }
       });
@@ -123,12 +130,15 @@
           var acc = window.mwiStore.get().accounts.find(function (x) { return x.id === id; });
           openModal(acc);
         } else if (action === 'remove') {
-          if (confirm(t('sidebar.confirm.remove', { id: id }))) {
-            await window.api.accounts.remove(id);
-            var cur = window.mwiStore.get().focusedAccountId;
-            if (cur === id) window.mwiStore.set({ focusedAccountId: null });
-            await refresh();
+          if (!await window.mwiAlert.confirm({ message: t('sidebar.confirm.remove', { id: id }) })) return;
+          await window.api.accounts.remove(id);
+          var cur = window.mwiStore.get().focusedAccountId;
+          if (cur === id) window.mwiStore.set({ focusedAccountId: null });
+          // 同步清掉 preview tab（如有）
+          if (window.mwiTabbar && window.mwiTabbar.clearPreviewTab) {
+            window.mwiTabbar.clearPreviewTab();
           }
+          await refresh();
         }
       });
     });
@@ -184,7 +194,7 @@
     if (window.mwiTabbar && window.mwiTabbar.openSubscriptionsTab) {
       window.mwiTabbar.openSubscriptionsTab();
     } else {
-      alert(t('sidebar.alert.subs_missing'));
+      window.mwiAlert.alert({ type: 'warn', message: t('sidebar.alert.subs_missing') });
     }
   });
   if (quickAddBtn) quickAddBtn.addEventListener('click', function () { openModal(null); });

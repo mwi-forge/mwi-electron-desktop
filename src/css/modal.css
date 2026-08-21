@@ -1,0 +1,145 @@
+/* ==========================================================================
+   modal.css — MWI 应用内统一弹窗（替代 Electron 原生 dialog.showMessageBox）
+   设计目标：与 chrome UI 共享 token；alert / confirm 共用同一 slot；
+   单实例串行（同时只弹一个，避免告警风暴）。
+   ========================================================================== */
+
+#mwi-alert-slot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;  /* 默认不挡事件；backdrop 单独启用 */
+}
+
+.mwi-alert-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  /* 用 mwi-backdrop-in（仅 opacity 0→1）而非 mwi-modal-in，避免 translate 错位；
+     16ms 极短 fade 让 backdrop 立刻遮住 chrome UI，杜绝"闪一下"。 */
+  animation: mwi-backdrop-in 80ms var(--mwi-ease) forwards;
+}
+
+.mwi-alert {
+  width: 480px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: var(--mwi-bg-panel);
+  border: 1px solid var(--mwi-border-strong);
+  border-radius: var(--mwi-radius-lg);
+  box-shadow: var(--mwi-shadow-lg);
+  padding: var(--mwi-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mwi-space-4);
+  /* 用自定义 keyframes：去掉 mwi-modal-in 的 translate(-50%)（flex 居中不需要），
+     只保留 scale + opacity，避免 1 帧错位。 */
+  animation: mwi-alert-in 180ms var(--mwi-ease) both;
+  font-family: var(--mwi-font-ui);
+}
+
+@keyframes mwi-alert-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.mwi-alert__header {
+  display: flex;
+  align-items: center;
+  gap: var(--mwi-space-3);
+}
+
+.mwi-alert__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0E0E11;
+}
+
+.mwi-alert__icon--error { background: var(--mwi-status-error); }
+.mwi-alert__icon--warn  { background: var(--mwi-status-warn); }
+.mwi-alert__icon--info  { background: var(--mwi-accent); color: #0E0E11; }
+
+.mwi-alert__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mwi-text-primary);
+  line-height: 1.4;
+}
+
+.mwi-alert__message {
+  font-size: 13px;
+  color: var(--mwi-text-primary);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mwi-alert__detail {
+  font-family: var(--mwi-font-mono);
+  font-size: 12px;
+  color: var(--mwi-text-secondary);
+  background: var(--mwi-bg-inset);
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: var(--mwi-radius-sm);
+  padding: var(--mwi-space-3) var(--mwi-space-4);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.mwi-alert__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--mwi-space-3);
+  margin-top: var(--mwi-space-2);
+}
+
+.mwi-alert__btn {
+  /* 复用 settings-tab.css 的 .modal__btn 风格但就近重写，保持自洽 */
+  font-family: var(--mwi-font-ui);
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: var(--mwi-radius-sm);
+  background: var(--mwi-bg-elevated);
+  color: var(--mwi-text-primary);
+  border: 1px solid var(--mwi-border-strong);
+  cursor: pointer;
+  transition: background var(--mwi-fast), border-color var(--mwi-fast), transform var(--mwi-fast);
+}
+
+.mwi-alert__btn:hover { background: var(--mwi-bg-hover); }
+.mwi-alert__btn:active { background: var(--mwi-bg-active); transform: translateY(0.5px); }
+.mwi-alert__btn:focus {
+  outline: none;
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+
+.mwi-alert__btn--primary {
+  background: var(--mwi-accent);
+  border-color: var(--mwi-accent);
+  color: #0E0E11;
+  font-weight: 600;
+}
+
+.mwi-alert__btn--primary:hover { background: var(--mwi-accent-strong); border-color: var(--mwi-accent-strong); }
+.mwi-alert__btn--primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+
+/* 入场动画复用 tokens.css 中的 mwi-modal-in */

@@ -47,6 +47,11 @@
 /* ===== 状态点（色点 + 状态标签双通道；文本符号隐藏，纯 CSS 画点）=====
    形状与各状态（stopped 灰 / running 绿呼吸 / error 红脉冲）统一定义在
    sidebar.css；tab 内 stopped 类 =「启动中」，呈蓝色旋转 spinner。 */
+/* ===== preview tab（未启动账号临时 tab）===== */
+/* 视觉区分：tab 名字略淡 + 状态灯用 sidebar 一致的灰色圆点（同 .tab__dot--stopped）。
+   不加额外装饰（box-shadow / 大圆框 / pause icon）—— 状态灯样式保持单一来源。 */
+.tab--preview .tab__name { color: var(--mwi-text-secondary); font-weight: 500; }
+
 .tab__dot {
   margin-right: 2px;
 }
@@ -61,8 +66,9 @@
   flex: 0 1 auto; /* 优先不缩，但允许父容器溢出时收缩 */
 }
 
-/* ===== 关闭按钮（data-action="close"，[X] 文本隐藏，mask 画 X）===== */
+/* ===== 关闭按钮（data-action="close"/[X] 文本隐藏，mask 画 X）===== */
 .tab__close[data-action='close'],
+.tab__close[data-action='close-preview'],
 .tab__close[data-action='close-form'] {
   width: 18px;
   height: 18px;
@@ -80,6 +86,7 @@
   transition: background-color var(--mwi-fast), color var(--mwi-fast);
 }
 .tab__close[data-action='close']::before,
+.tab__close[data-action='close-preview']::before,
 .tab__close[data-action='close-form']::before {
   content: '';
   width: 10px;
@@ -89,10 +96,12 @@
   mask: var(--mwi-ico-x) no-repeat center / contain;
 }
 .tab:hover .tab__close[data-action='close'],
+.tab:hover .tab__close[data-action='close-preview'],
 .tab:hover .tab__close[data-action='close-form'] {
   color: var(--mwi-text-muted);
 }
 .tab__close[data-action='close']:hover,
+.tab__close[data-action='close-preview']:hover,
 .tab__close[data-action='close-form']:hover {
   background: var(--mwi-status-error);
   color: #FFFFFF;
