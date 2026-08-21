@@ -2,6 +2,8 @@
 // 通过 contextBridge 暴露 window.api.* 给渲染进程
 // 所有调用都走 ipcRenderer.invoke，与主进程 lib/ipc.js 注册的 handlers 对应
 
+// 注意：preload 上下文不暴露 app 模块（app.getVersion 在此处会抛 TypeError 导致整个 preload 加载失败），
+// 版本号改走 ipcRenderer.sendSync('app:get-version')，由主进程 lib/ipc.js 的 ipcMain.on 处理器返回。
 const { contextBridge, ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -143,8 +145,30 @@ contextBridge.exposeInMainWorld('api', {
 
   // === 应用信息 ===
   app: {
-    version: '0.1.0',
+    // 版本号动态读取（勿硬编码）：preload 无 app 模块，走同步 IPC 由主进程 app.getVersion() 返回
+    version: ipcRenderer.sendSync('app:get-version'),
     platform: process.platform,
+  },
+
+  // === 自定义标题栏窗口控制（仅 frame:false 模式生效）===
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximizeToggle: () => ipcRenderer.send('window:maximizeToggle'),
+    close: () => ipcRenderer.send('window:close'),
+  },
+
+  // === 测试 hook（仅 MWI_TEST_* 环境变量启用时由主进程发送）===
+  test: {
+    onSetPreview: (cb) => {
+      const h = (_e, accId) => cb(accId);
+      ipcRenderer.on('ui:test:setPreview', h);
+      return () => ipcRenderer.removeListener('ui:test:setPreview', h);
+    },
+    onOpenForm: (cb) => {
+      const h = () => cb();
+      ipcRenderer.on('ui:test:openForm', h);
+      return () => ipcRenderer.removeListener('ui:test:openForm', h);
+    },
   },
 
   // === 应用内统一弹窗（替代 dialog.showMessageBox）===

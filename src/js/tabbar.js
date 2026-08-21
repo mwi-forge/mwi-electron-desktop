@@ -9,6 +9,8 @@
   //   { id: 'account-form:new' | 'account-form:edit:<accountId>', isEdit, accountId, title }
   const formTabs = [];
   let activeTabId = null;  // 当前 active tab：game tab 用 accountId，form tab 用 formTab.id
+  // preview tab（点击未启动 sidebar 节点创建的临时 tab；切换到其他 tab 时自动关闭）
+  let previewTabId = null;  // accountId 或 null
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>'"]/g, function (c) {
@@ -38,6 +40,7 @@
     // 直接清空 formTabs + 关闭静态层（不调 closeFormTab，避免末尾默认聚焦）
     formTabs.splice(0);
     closeAllStaticTabs();
+    if (previewTabId) clearPreviewTab();
     activeTabId = null;
     if (window.api && window.api.canvas && window.api.canvas.resumeFocused) {
       try { await window.api.canvas.resumeFocused(); } catch (e) { /* ignore */ }
@@ -65,9 +68,25 @@
         '<div class="tab' + (focused ? ' tab--focused' : '') + '" data-tab-type="game" data-account-id="' + id + '">' +
         '<span class="tab__dot ' + statusClass + '">' + statusMark + '</span>' +
         '<span class="tab__name">' + escapeHtml(acc.name || acc.id || (window.mwiI18n && window.mwiI18n.t ? window.mwiI18n.t('tabbar.name.unnamed') : '未命名')) + '</span>' +
-        '<button class="tab__close" data-action="close" data-id="' + id + '" title="关闭 tab">[X]</button>' +
+        '<button class="tab__close" data-action="close" data-id="' + id + '" title="关闭 tab" aria-label="关闭 tab"></button>' +
         '</div>'
       );
+    }
+
+    // preview tab（点击未启动 sidebar 节点创建；切到其他 tab 自动关闭）
+    // 仅当 previewTabId 不在 gameIds 里（避免与运行中的 tab 重复）
+    if (previewTabId && gameIds.indexOf(previewTabId) === -1) {
+      var previewAcc = s.accounts.find(function (a) { return a.id === previewTabId; });
+      if (previewAcc) {
+        var previewFocused = activeTabId === previewTabId;
+        parts.push(
+          '<div class="tab tab--preview' + (previewFocused ? ' tab--focused' : '') + '" data-tab-type="preview" data-account-id="' + previewTabId + '">' +
+          '<span class="tab__dot tab__dot--stopped" title="未启动（临时预览 tab）"></span>' +
+          '<span class="tab__name">' + escapeHtml(previewAcc.name || previewTabId || (window.mwiI18n && window.mwiI18n.t ? window.mwiI18n.t('tabbar.name.unnamed') : '未命名')) + '</span>' +
+          '<button class="tab__close" data-action="close-preview" data-id="' + previewTabId + '" title="关闭 tab" aria-label="关闭 tab"></button>' +
+          '</div>'
+        );
+      }
     }
 
     // form tabs（紧随 game tabs 之后）
@@ -84,7 +103,7 @@
           (ft.isEdit ? ((window.mwiI18n && window.mwiI18n.t ? window.mwiI18n.t('tabbar.title.edit_prefix') : '编辑: ') + (ft.accountData && ft.accountData.name || '')) : (window.mwiI18n && window.mwiI18n.t ? window.mwiI18n.t('tabbar.title.add_account') : '添加账号'))
         )) +
         '</span>' +
-        '<button class="tab__close" data-action="close-form" data-form-id="' + ft.id + '" title="关闭 tab">[X]</button>' +
+        '<button class="tab__close" data-action="close-form" data-form-id="' + ft.id + '" title="关闭 tab" aria-label="关闭 tab"></button>' +
         '</div>'
       );
     }
@@ -107,6 +126,21 @@
       el.addEventListener('click', async function (ev) {
         ev.stopPropagation();
         await window.api.views.stop(el.dataset.id);
+      });
+    });
+
+    // preview tab 点击：focus preview tab（hide focused view，canvas 显示 placeholder）
+    root.querySelectorAll('[data-tab-type="preview"]').forEach(function (el) {
+      el.addEventListener('click', function (ev) {
+        if (ev.target.closest('.tab__close')) return;
+        focusPreviewTab(el.dataset.accountId);
+      });
+    });
+    root.querySelectorAll('[data-action="close-preview"]').forEach(function (el) {
+      el.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        clearPreviewTab();
+        render();
       });
     });
 
@@ -145,9 +179,53 @@
       closeAllStaticTabs();
     }
 
+    // 切到 game tab：preview tab 自动关闭（除非就是这个 game tab 自己）
+    if (previewTabId && previewTabId !== accountId) clearPreviewTab();
+
     // 通知主进程聚焦 game view（views.focus）
     try { await window.api.views.focus(accountId); } catch (e) {}
     render();
+  }
+
+  // 切到 preview tab（hide focused view 让 canvas 显示 placeholder）
+  async function focusPreviewTab(accountId) {
+    var prevActive = activeTabId;
+    activeTabId = accountId;
+
+    // 切换前如果是 form tab：resume focused + 关闭静态层
+    var prevFormTab = findFormTab(prevActive);
+    if (prevFormTab) {
+      try { await window.api.canvas.resumeFocused(); } catch (e) {}
+      closeAllStaticTabs();
+    }
+
+    // hide 当前 focused view（如果有），让 canvas placeholder 露出来
+    if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
+      try { await window.api.canvas.hideFocused(); } catch (e) {}
+    }
+    render();
+  }
+
+  // 设置 preview tab（外部：sidebar 点击未启动账号）
+  function setPreviewTab(accountId) {
+    if (previewTabId === accountId) return;
+    previewTabId = accountId;
+    activeTabId = accountId;
+    // 隐藏 canvas 里当前挂载的 form DOM（订阅管理 / 账号表单 / 设置）——
+    // 它们会盖在 placeholder 上面；但 formTabs[] 不清，用户可点订阅 tab 切回去（DOM 会重新挂载）。
+    closeAllStaticTabs();
+    // hide focused view
+    if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
+      try { window.api.canvas.hideFocused(); } catch (e) {}
+    }
+    render();
+  }
+
+  // 清除 preview tab（外部：sidebar 关闭 / 切到 game / 启动账号完成等）
+  function clearPreviewTab() {
+    if (!previewTabId) return;
+    previewTabId = null;
+    // 不动 activeTabId（让上层决定下一个 active）
   }
 
   // 切到 form tab（hideFocused + mount form）
@@ -160,6 +238,8 @@
       render();
       return;
     }
+    // 切到 form tab：preview tab 自动关闭
+    if (previewTabId) clearPreviewTab();
     var prevActive = activeTabId;
     activeTabId = formTabId;
 
@@ -399,6 +479,25 @@
     closeFormTab: closeFormTab,
     closeAllFormTabs: closeAllFormTabs,
     focusFormTab: focusFormTab,
+    setPreviewTab: setPreviewTab,      // 侧栏点未启动账号 → 创建临时 tab
+    clearPreviewTab: clearPreviewTab,  // 关闭临时 tab
+    focusPreviewTab: focusPreviewTab,  // 切到 preview tab 时 hide focused view
     getActiveTabId: function () { return activeTabId; },
+    getPreviewTabId: function () { return previewTabId; },
   };
+
+  // 测试 hook：主进程推送 ui:test:setPreview 时调 setPreviewTab（模拟侧栏点击未启动账号）
+  if (window.api && window.api.test && window.api.test.onSetPreview) {
+    window.api.test.onSetPreview(function (accId) {
+      if (accId) setPreviewTab(accId);
+    });
+  }
+  // 测试 hook：主进程推送 ui:test:openForm 时调 openSubscriptionsTab（模拟点「订阅」按钮）
+  if (window.api && window.api.test && window.api.test.onOpenForm) {
+    window.api.test.onOpenForm(function () {
+      if (window.mwiTabbar && window.mwiTabbar.openSubscriptionsTab) {
+        window.mwiTabbar.openSubscriptionsTab();
+      }
+    });
+  }
 })();

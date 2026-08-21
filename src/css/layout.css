@@ -94,6 +94,7 @@ body {
   box-shadow: var(--mwi-shadow-sm);
   position: relative;
   z-index: 20;
+  /* 注意：OS 标题栏还在，chrome UI .toolbar 不需要 -webkit-app-region drag */
 }
 
 .toolbar__brand {

@@ -36,111 +36,117 @@
   /**
    * 通用内部渲染入口。所有 dialog（IPC 推送 + 渲染直接调用）都走这里。
    * 返回 Promise<number> 用户点击的按钮索引。
+   *
+   * 实现要点：DOM 构建 + 事件绑定全部在 Promise executor 内完成，让
+   *   function finish 块级提升到 executor 顶部，对 button click / keydown /
+   *   backdrop click 三处 handler 都可见（避免外层引用内层声明的 ReferenceError）。
    */
   function renderDialog(payload) {
     const slot = ensureSlot();
-    const backdrop = document.createElement('div');
-    backdrop.className = 'mwi-alert-backdrop';
-
-    const dialog = document.createElement('div');
-    dialog.className = 'mwi-alert';
-    dialog.setAttribute('role', 'alertdialog');
-    dialog.setAttribute('aria-modal', 'true');
-    const dlgId = payload.id || genId();
-    dialog.setAttribute('aria-labelledby', 'mwi-alert-title-' + dlgId);
-    dialog.setAttribute('aria-describedby', 'mwi-alert-message-' + dlgId);
-
-    // === header (icon + title) ===
-    const header = document.createElement('div');
-    header.className = 'mwi-alert__header';
-    const icon = document.createElement('div');
-    const type = payload.type || 'info';
-    icon.className = 'mwi-alert__icon mwi-alert__icon--' + type;
-    icon.textContent = type === 'error' ? '!' : type === 'warn' ? '!' : 'i';
-    icon.setAttribute('aria-hidden', 'true');
-    const title = document.createElement('div');
-    title.id = 'mwi-alert-title-' + dlgId;
-    title.className = 'mwi-alert__title';
-    title.textContent = payload.title || '';
-    header.appendChild(icon);
-    header.appendChild(title);
-    dialog.appendChild(header);
-
-    // === message ===
-    if (payload.message) {
-      const msg = document.createElement('div');
-      msg.id = 'mwi-alert-message-' + dlgId;
-      msg.className = 'mwi-alert__message';
-      msg.textContent = payload.message;
-      dialog.appendChild(msg);
-    }
-
-    // === detail (monospace block) ===
-    if (payload.detail) {
-      const detail = document.createElement('div');
-      detail.className = 'mwi-alert__detail';
-      detail.textContent = payload.detail;
-      dialog.appendChild(detail);
-    }
-
-    // === actions ===
-    const buttons = payload.buttons && payload.buttons.length ? payload.buttons : ['我知道了'];
-    const actions = document.createElement('div');
-    actions.className = 'mwi-alert__actions';
-    const buttonEls = [];
-    buttons.forEach((label, idx) => {
-      const btn = document.createElement('button');
-      btn.className = 'mwi-alert__btn' + (idx === payload.defaultId ? ' mwi-alert__btn--primary' : '');
-      btn.type = 'button';
-      btn.textContent = label;
-      btn.dataset.idx = String(idx);
-      btn.addEventListener('click', () => finish(idx));
-      buttonEls.push(btn);
-      actions.appendChild(btn);
-    });
-    dialog.appendChild(actions);
-
-    backdrop.appendChild(dialog);
-    slot.appendChild(backdrop);
-
-    // 焦点默认落到 defaultId 按钮
-    const focusIdx = typeof payload.defaultId === 'number' && payload.defaultId >= 0 && payload.defaultId < buttonEls.length
-      ? payload.defaultId
-      : 0;
-    setTimeout(() => { try { buttonEls[focusIdx].focus(); } catch (_) {} }, 0);
-
-    // body scroll lock
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    // keyboard
-    const onKey = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        finish(typeof payload.defaultId === 'number' ? payload.defaultId : 0);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        const cancelIdx = typeof payload.cancelId === 'number' ? payload.cancelId : focusIdx;
-        finish(cancelIdx);
-      } else if (e.key === 'Tab') {
-        // 简单 focus trap：在 buttonEls 间循环
-        const activeIdx = buttonEls.indexOf(document.activeElement);
-        if (e.shiftKey) {
-          if (activeIdx <= 0) { e.preventDefault(); buttonEls[buttonEls.length - 1].focus(); }
-        } else {
-          if (activeIdx === buttonEls.length - 1) { e.preventDefault(); buttonEls[0].focus(); }
-        }
-      }
-    };
-    document.addEventListener('keydown', onKey, true);
-
-    // backdrop click：仅当 dismissOnBackdrop=true 时关闭，否则吞掉
-    const onBackdropClick = (e) => {
-      if (e.target === backdrop && payload.dismissOnBackdrop) finish(focusIdx);
-    };
-    backdrop.addEventListener('click', onBackdropClick);
-
     return new Promise((resolve) => {
+      // === DOM 构建 ===
+      const backdrop = document.createElement('div');
+      backdrop.className = 'mwi-alert-backdrop';
+
+      const dialog = document.createElement('div');
+      dialog.className = 'mwi-alert';
+      dialog.setAttribute('role', 'alertdialog');
+      dialog.setAttribute('aria-modal', 'true');
+      const dlgId = payload.id || genId();
+      dialog.setAttribute('aria-labelledby', 'mwi-alert-title-' + dlgId);
+      dialog.setAttribute('aria-describedby', 'mwi-alert-message-' + dlgId);
+
+      // header (icon + title)
+      const header = document.createElement('div');
+      header.className = 'mwi-alert__header';
+      const icon = document.createElement('div');
+      const type = payload.type || 'info';
+      icon.className = 'mwi-alert__icon mwi-alert__icon--' + type;
+      icon.textContent = type === 'error' ? '!' : type === 'warn' ? '!' : 'i';
+      icon.setAttribute('aria-hidden', 'true');
+      const title = document.createElement('div');
+      title.id = 'mwi-alert-title-' + dlgId;
+      title.className = 'mwi-alert__title';
+      title.textContent = payload.title || '';
+      header.appendChild(icon);
+      header.appendChild(title);
+      dialog.appendChild(header);
+
+      // message
+      if (payload.message) {
+        const msg = document.createElement('div');
+        msg.id = 'mwi-alert-message-' + dlgId;
+        msg.className = 'mwi-alert__message';
+        msg.textContent = payload.message;
+        dialog.appendChild(msg);
+      }
+
+      // detail (monospace block)
+      if (payload.detail) {
+        const detail = document.createElement('div');
+        detail.className = 'mwi-alert__detail';
+        detail.textContent = payload.detail;
+        dialog.appendChild(detail);
+      }
+
+      // actions
+      const buttons = payload.buttons && payload.buttons.length ? payload.buttons : ['我知道了'];
+      const actions = document.createElement('div');
+      actions.className = 'mwi-alert__actions';
+      const buttonEls = [];
+      buttons.forEach((label, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'mwi-alert__btn' + (idx === payload.defaultId ? ' mwi-alert__btn--primary' : '');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.dataset.idx = String(idx);
+        btn.addEventListener('click', () => finish(idx));
+        buttonEls.push(btn);
+        actions.appendChild(btn);
+      });
+      dialog.appendChild(actions);
+
+      backdrop.appendChild(dialog);
+      slot.appendChild(backdrop);
+
+      // 焦点默认落到 defaultId 按钮
+      const focusIdx = typeof payload.defaultId === 'number' && payload.defaultId >= 0 && payload.defaultId < buttonEls.length
+        ? payload.defaultId
+        : 0;
+      setTimeout(() => { try { buttonEls[focusIdx].focus(); } catch (_) {} }, 0);
+
+      // body scroll lock
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      // keyboard handler
+      const onKey = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finish(typeof payload.defaultId === 'number' ? payload.defaultId : 0);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          const cancelIdx = typeof payload.cancelId === 'number' ? payload.cancelId : focusIdx;
+          finish(cancelIdx);
+        } else if (e.key === 'Tab') {
+          // 简单 focus trap：在 buttonEls 间循环
+          const activeIdx = buttonEls.indexOf(document.activeElement);
+          if (e.shiftKey) {
+            if (activeIdx <= 0) { e.preventDefault(); buttonEls[buttonEls.length - 1].focus(); }
+          } else {
+            if (activeIdx === buttonEls.length - 1) { e.preventDefault(); buttonEls[0].focus(); }
+          }
+        }
+      };
+      document.addEventListener('keydown', onKey, true);
+
+      // backdrop click：仅当 dismissOnBackdrop=true 时关闭
+      const onBackdropClick = (e) => {
+        if (e.target === backdrop && payload.dismissOnBackdrop) finish(focusIdx);
+      };
+      backdrop.addEventListener('click', onBackdropClick);
+
+      // === cleanup（块级声明，对 click/keydown/backdrop handler 都可见）===
       function finish(idx) {
         try { document.removeEventListener('keydown', onKey, true); } catch (_) {}
         try { backdrop.removeEventListener('click', onBackdropClick); } catch (_) {}
@@ -148,17 +154,14 @@
         try { document.body.style.overflow = prevOverflow; } catch (_) {}
         currentEl = null;
         // 主进程 IPC 来源的回执
-        if (payload._fromMain && api && api.dialog && api.dialog.reply) {
+        if (payload._source === 'main' && api && api.dialog && api.dialog.reply) {
           try { api.dialog.reply(payload.id, idx); } catch (e) { console.error('[modal] reply failed:', e); }
         }
         resolve(idx);
         pump();
       }
+
       currentEl = dialog;
-      // 替换原来的 currentCleanup 直接挂在 finish 上
-      // （currentEl 在 finish 内部置 null，pump 会自动续上队列）
-      // 但需要让外部能引用到 finish —— 上面 currentCleanup 已移除，改用 currentEl 上的 _finish 引用
-      dialog._finish = finish;
     });
   }
 
@@ -166,12 +169,14 @@
     if (currentEl) return; // 已有对话框在显示
     const next = queue.shift();
     if (!next) return;
-    // 标记 fromMain（区分 IPC 来源 vs 渲染进程直接调用）
+    // 标记 fromMain（区分 IPC 来源 vs 渲染进程直接调用），缺省视为 local
     if (!next._source) next._source = 'local';
-    const promise = renderDialog(next);
-    if (next._source === 'local' && next._localResolve) {
-      promise.then(next._localResolve);
+    const p = renderDialog(next);
+    // local 来源：把按钮索引透传给 alert()/confirm() 调用方的 Promise
+    if (next._source === 'local' && typeof next._localResolve === 'function') {
+      p.then(next._localResolve);
     }
+    // main 来源：renderDialog 内部已经通过 api.dialog.reply 回执，无需 .then
   }
 
   // ========== 公开 API ==========
@@ -250,7 +255,7 @@
         console.warn('[modal] received dialog without id, dropping');
         return;
       }
-      // 主进程来源：queue item 上不需要 _localResolve；renderDialog 完成后通过 api.dialog.reply 回执
+      // 主进程来源：queue item 上没有 _localResolve；renderDialog 完成后通过 api.dialog.reply 回执
       const item = Object.assign({}, payload, { _source: 'main' });
       queue.push(item);
       pump();

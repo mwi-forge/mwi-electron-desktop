@@ -6,8 +6,13 @@
   const MAX_VISIBLE_LOGS = 50;
   const CARD_KEY = 'mwi:panel:card-collapsed';
 
-  let cardCollapsed = false;
-  try { cardCollapsed = localStorage.getItem(CARD_KEY) === '1'; } catch (e) { /* ignore */ }
+  // 默认收起：未启动时不需要展开卡片，让中间游戏视图占更多视觉空间
+  // 只有用户在历史会话里显式展开过（localStorage === '0'）才保持展开
+  let cardCollapsed = true;
+  try {
+    var _stored = localStorage.getItem(CARD_KEY);
+    if (_stored === '0') cardCollapsed = false;
+  } catch (e) { /* ignore */ }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -77,8 +82,22 @@
     });
     var startBtn = bodyRoot.querySelector('[data-action="start"]');
     if (startBtn) startBtn.addEventListener('click', async function () {
+      // 启动前清掉 preview tab（如有），避免同一账号同时出现在 preview + game tab
+      if (window.mwiTabbar && window.mwiTabbar.clearPreviewTab &&
+          window.mwiTabbar.getPreviewTabId && window.mwiTabbar.getPreviewTabId() === acc.id) {
+        window.mwiTabbar.clearPreviewTab();
+      }
       var r = await window.api.views.start(acc.id);
-      if (r && r.ok === false && r.error !== 'cancelled') window.mwiAlert.alert({ type: 'error', message: t('panel.alert.start_failed', { error: r.error || 'unknown' }) });
+      if (r && r.ok === false && r.error !== 'cancelled') {
+        window.mwiAlert.alert({ type: 'error', message: t('panel.alert.start_failed', { error: r.error || 'unknown' }) });
+        return;
+      }
+      // 启动成功后收起卡片（持久化），让中间 WebContentsView 区域聚焦游戏视图
+      if (!cardCollapsed) {
+        cardCollapsed = true;
+        try { localStorage.setItem(CARD_KEY, '1'); } catch (e) { /* ignore */ }
+        renderBody();
+      }
     });
     var stopBtn = bodyRoot.querySelector('[data-action="stop"]');
     if (stopBtn) stopBtn.addEventListener('click', async function () {

@@ -3,6 +3,7 @@
 
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const ipc = require('./lib/ipc');
 const views = require('./lib/views');
 const logs = require('./lib/logs');
@@ -32,11 +33,32 @@ if (!gotTheLock) {
       minHeight: 600,
       backgroundColor: '#0F0F0F',  // 避免白闪（深色背景）
       title: 'MWI Multi-Account Manager',
-      // 应用图标：macOS 取自 .app bundle（electron-builder 写入 build/icon.icns），
-      // Win/Linux 取自 build/icon.ico（开发模式立即生效）
-      icon: process.platform === 'win32' || process.platform === 'linux'
-        ? path.join(__dirname, 'build', 'icon.ico')
-        : path.join(__dirname, 'build', 'icon.icns'),
+      // === 深色标题栏策略 ===
+      // Win11: titleBarOverlay 让 OS 标题栏背景=深色、控件=浅色（与 chrome UI 自然融合）
+      // Win10: 没有 native API 改 OS 标题栏颜色，titleBarOverlay 被忽略但不影响 frame
+      // macOS: titleBarStyle='hidden' 隐藏标题栏，由 chrome UI toolbar 接管
+      // 不使用 frame:false（去掉整个 OS 标题栏会破坏窗口拖拽/最小化/全屏手势）
+      titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+      ...(process.platform === 'win32' ? {
+        titleBarOverlay: {
+          color: '#1A1A1F',        // OS 标题栏背景（与 chrome UI .panel bg 接近）
+          symbolColor: '#F1F2F6',  // 窗口控制按钮颜色
+          height: 36,
+        },
+      } : {}),
+      // 应用图标：dev 模式直接用 resources/logo.png（PNG Electron 全平台支持，
+      // 1024x1024 在标题栏/任务栏缩放清晰），无需先跑 build-brand-assets.py 生成 ICO/ICNS；
+      // 打包后由 electron-builder 自动读 build/icon.ico 嵌入到 .exe（由
+      // scripts/build-icon-assets.mjs 在 prebuild 阶段生成）。
+      // 三级 fallback：darwin 优先 icns → 任何平台都接受 ico → 最后用 PNG 兜底。
+      icon: (() => {
+        const icnsPath = path.join(__dirname, 'build', 'icon.icns');
+        const icoPath  = path.join(__dirname, 'build', 'icon.ico');
+        const pngPath  = path.join(__dirname, 'resources', 'logo.png');
+        if (process.platform === 'darwin' && fs.existsSync(icnsPath)) return icnsPath;
+        if (fs.existsSync(icoPath)) return icoPath;
+        return fs.existsSync(pngPath) ? pngPath : undefined;
+      })(),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
@@ -97,6 +119,109 @@ if (!gotTheLock) {
   });
 
   ipc.register();
+
+  // === 测试 hook：MWI_TEST_DIALOG=1 时，启动后向渲染进程推一次 ui:dialog
+  // === 仅供 tests/integration-electron.js 端到端验证使用，不污染生产
+  // === 不再自动 app.exit()——puppeteer 主动关，避免 click/esc 后 page 被 detach
+  if (process.env.MWI_TEST_DIALOG === '1') {
+    const wait = parseInt(process.env.MWI_TEST_DIALOG_WAIT || '2000', 10);
+    setTimeout(async () => {
+      try {
+        const idx = await alert.showAppAlert({
+          type: 'error',
+          title: '[TEST] 代理启动失败',
+          message: '测试弹窗 message',
+          detail: '原因: mihomo_binary_not_found\n代理模式: subscription\n\n详情测试',
+          buttons: ['我知道了'],
+          defaultId: 0,
+          cancelId: 0,
+        });
+        console.log('[MWI_TEST] dialog resolved idx=' + idx);
+      } catch (e) {
+        console.error('[MWI_TEST] alert failed:', e.message);
+      }
+    }, wait);
+  }
+
+  // === 测试 hook：MWI_TEST_PREVIEW=1 时，模拟侧栏点未启动账号创建 preview tab ===
+  if (process.env.MWI_TEST_PREVIEW === '1') {
+    const previewWait = parseInt(process.env.MWI_TEST_PREVIEW_WAIT || '2000', 10);
+    // 可选：MWI_TEST_FORM_FIRST=1 时先打开订阅管理 tab（验证 setPreviewTab 关 form tab）
+    if (process.env.MWI_TEST_FORM_FIRST === '1') {
+      setTimeout(function () {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('ui:test:openForm');
+          console.log('[MWI_TEST_FORM] sent openForm');
+        }
+      }, parseInt(process.env.MWI_TEST_FORM_FIRST_WAIT || '1500', 10));
+    }
+    setTimeout(function () {
+      try {
+        const accId = process.env.MWI_TEST_PREVIEW_ACC || 'acc_79ed23b9'; // 002（未启动）
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('ui:test:setPreview', accId);
+          console.log('[MWI_TEST_PREVIEW] sent setPreview ipc: ' + accId);
+        }
+      } catch (e) { console.error('[MWI_TEST_PREVIEW] err:', e.message); }
+    }, previewWait);
+    // 周期截 BrowserWindow 到 tests/screenshots/preview-N.png
+    let pn = 0;
+    const prevInt = setInterval(async function () {
+      try {
+        if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(prevInt); return; }
+        const img = await mainWindow.webContents.capturePage();
+        fs.writeFileSync('tests/screenshots/preview-' + pn + '.png', img.toPNG());
+        pn++;
+        if (pn > 6) clearInterval(prevInt);
+      } catch (e) { /* ignore */ }
+    }, 700);
+  }
+
+  // === 测试 hook：MWI_TEST_STARTVIEW=1 时，启动 KaelthaZ 账号触发代理启动流程
+  if (process.env.MWI_TEST_STARTVIEW === '1') {
+    const startWait = parseInt(process.env.MWI_TEST_STARTVIEW_WAIT || '1500', 10);
+    setTimeout(async () => {
+      try {
+        const accId = process.env.MWI_TEST_STARTVIEW_ACC || 'acc_d9ebe258';
+        console.log('[MWI_TEST_STARTVIEW] starting ' + accId);
+        const r = await views.startView(accId);
+        console.log('[MWI_TEST_STARTVIEW] result:', JSON.stringify(r));
+        // dump view 状态
+        const view = views.getView(accId);
+        if (view) {
+          const wb = view.getBounds();
+          const wc = view.webContents;
+          const dump = {
+            bounds: wb,
+            webContentsId: wc.id,
+            webContentsURL: wc.getURL(),
+            webContentsTitle: wc.getTitle(),
+            isLoading: wc.isLoading(),
+            isCrashed: wc.isCrashed(),
+          };
+          console.log('[MWI_TEST_STARTVIEW] view-dump:', JSON.stringify(dump));
+          try { fs.writeFileSync('tests/view-dump.json', JSON.stringify(dump, null, 2)); } catch (_) {}
+          // 周期截 BrowserWindow 到 tests/screenshots/frame-N.png，间隔 500ms
+          let n = 0;
+          const capInt = setInterval(async () => {
+            try {
+              if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(capInt); return; }
+              const img = await mainWindow.webContents.capturePage();
+              fs.writeFileSync('tests/screenshots/frame-' + n + '.png', img.toPNG());
+              n++;
+              if (n > 12) clearInterval(capInt);
+            } catch (e) { /* ignore */ }
+          }, 500);
+        } else {
+          console.log('[MWI_TEST_STARTVIEW] view not found (start failed)');
+          try { fs.writeFileSync('tests/view-dump.json', JSON.stringify({ error: 'no view', startResult: r }, null, 2)); } catch (_) {}
+        }
+      } catch (e) {
+        console.error('[MWI_TEST_STARTVIEW] err:', e.message);
+        try { fs.writeFileSync('tests/view-dump.json', JSON.stringify({ error: e.message }, null, 2)); } catch (_) {}
+      }
+    }, startWait);
+  }
 
   // 调试模式：数据层自检（MWI_SELFTEST=1 启用）
   if (process.env.MWI_SELFTEST === '1') {

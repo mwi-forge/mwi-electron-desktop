@@ -22,3 +22,7 @@ Thumbs.db
 # Electron 用户数据（本地调试产生的账号配置与分区数据不入库）
 userData/
 Partitions/
+
+# 调试产物（截图/状态 dump）
+tests/screenshots/
+tests/view-dump.json
