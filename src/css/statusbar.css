@@ -60,6 +60,54 @@
   animation: mwi-pulse 1.6s ease-in-out infinite;
 }
 
+/* 当前打开页面 URL：超长省略 + hover 显示完整（flex child 省略模式） */
+.statusbar__url {
+  max-width: 320px;
+  min-width: 80px;
+}
+.statusbar__url::before {
+  -webkit-mask: var(--mwi-ico-window) no-repeat center / contain;
+  mask: var(--mwi-ico-window) no-repeat center / contain;
+}
+.statusbar__url .statusbar__url-text {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.statusbar__url--empty {
+  color: var(--mwi-text-faint);
+}
+.statusbar__url--empty::before {
+  display: none; /* 空态（占位）不显示窗口图标，仅在有真实 URL 时显示 */
+}
+
+/* ===== 「应用为URL」按钮：当前页 URL ≠ 当前账号配置 URL 时显示 ===== */
+.statusbar__apply-url {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-family: inherit;
+  color: var(--mwi-accent);
+  background: rgba(123, 158, 255, 0.10);
+  border: 1px solid rgba(123, 158, 255, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  flex: none;
+  transition: background-color var(--mwi-fast), border-color var(--mwi-fast), color var(--mwi-fast);
+}
+.statusbar__apply-url:hover {
+  background: rgba(123, 158, 255, 0.18);
+  border-color: rgba(123, 158, 255, 0.55);
+  color: var(--mwi-text-primary);
+}
+.statusbar__apply-url[hidden] {
+  display: none;
+}
+
 /* 右侧水印 */
 .statusbar__meta {
   margin-left: auto;

@@ -54,6 +54,12 @@ contextBridge.exposeInMainWorld('api', {
     listRunning:   ()          => ipcRenderer.invoke('views:listRunning'),
     getFocusedId:  ()          => ipcRenderer.invoke('views:getFocusedId'),
     getState:      (id)        => ipcRenderer.invoke('views:getState', id),
+    getFocusedUrl: ()          => ipcRenderer.invoke('views:getFocusedUrl'),
+    onUrlChanged: (cb) => {
+      const h = (_e, data) => cb(data);
+      ipcRenderer.on('view:url-changed', h);
+      return () => ipcRenderer.removeListener('view:url-changed', h);
+    },
     onStateChanged: (cb) => {
       const h = (_e, data) => cb(data);
       ipcRenderer.on('account:state-changed', h);

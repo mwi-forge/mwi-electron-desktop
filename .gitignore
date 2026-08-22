@@ -33,6 +33,7 @@ tmp_*
 
 # DSH 工具 / 开发环境缓存（不属于项目内容）
 .agents/
+.agent-teams/
 .dsh-vision-toolkit/
 .npm-cache/
 .playwright-browsers/

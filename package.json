@@ -1,6 +1,6 @@
 {
   "name": "mwi-electron-desktop",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Electron Desktop Multi-Account Browser: simultaneously log in to multiple web game accounts on the same computer, with completely isolated account environments, Tampermonkey script extension support, low resource consumption, and anti-association capabilities.",
   "main": "main.js",
   "scripts": {

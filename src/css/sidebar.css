@@ -160,7 +160,7 @@
   white-space: nowrap;
 }
 
-/* ===== 行内操作按钮（[E] / [X] 文本隐藏，mask 画图标）===== */
+/* ===== 行内启动/停止切换按钮（文本隐藏，mask 画图标；编辑/删除已移到右侧面板）===== */
 .account__actions {
   display: none;
   gap: 4px;
@@ -197,16 +197,27 @@
   -webkit-mask: var(--mwi-ico-pencil) no-repeat center / contain;
   mask: var(--mwi-ico-pencil) no-repeat center / contain;
 }
-.btn-icon[data-action='remove']::before {
-  -webkit-mask-image: var(--mwi-ico-trash);
-  mask-image: var(--mwi-ico-trash);
-}
 .btn-icon:hover {
   background: var(--mwi-bg-hover);
   border-color: var(--mwi-border-strong);
   color: var(--mwi-text-primary);
 }
-.btn-icon[data-action='remove']:hover {
+
+/* 快捷启动/停止按钮（行内）：停止态显示 play，运行/启动中显示 stop */
+.btn-icon[data-action='toggle']::before {
+  -webkit-mask-image: var(--mwi-ico-play);
+  mask-image: var(--mwi-ico-play);
+}
+.btn-icon[data-action='toggle'][data-running='1']::before {
+  -webkit-mask-image: var(--mwi-ico-stop);
+  mask-image: var(--mwi-ico-stop);
+}
+.btn-icon[data-action='toggle'][data-running='0']:hover {
+  background: rgba(123, 158, 255, 0.12);
+  border-color: rgba(123, 158, 255, 0.4);
+  color: var(--mwi-accent);
+}
+.btn-icon[data-action='toggle'][data-running='1']:hover {
   background: rgba(248, 113, 113, 0.12);
   border-color: rgba(248, 113, 113, 0.4);
   color: var(--mwi-status-error);

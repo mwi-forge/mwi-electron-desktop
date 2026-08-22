@@ -76,6 +76,8 @@ if (!gotTheLock) {
         mainWindow.webContents.send('account:state-changed', { accountId: evt.accountId, state: evt.state });
       } else if (evt.type === 'focus') {
         mainWindow.webContents.send('view:focus-changed', { accountId: evt.accountId });
+      } else if (evt.type === 'url') {
+        mainWindow.webContents.send('view:url-changed', { accountId: evt.accountId, url: evt.url });
       }
     });
 
