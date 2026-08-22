@@ -36,9 +36,11 @@ if (!gotTheLock) {
       // === 深色标题栏策略 ===
       // Win11: titleBarOverlay 让 OS 标题栏背景=深色、控件=浅色（与 chrome UI 自然融合）
       // Win10: 没有 native API 改 OS 标题栏颜色，titleBarOverlay 被忽略但不影响 frame
-      // macOS: titleBarStyle='hidden' 隐藏标题栏，由 chrome UI toolbar 接管
+      // macOS: titleBarStyle='default' 用 OS 原生标题栏（带拖动 + 红绿灯 + 系统菜单栏）。
+      // 2026-08-22 临时改回 default —— hidden 模式 + .toolbar 没加 -webkit-app-region drag
+      // 导致整个窗口顶部 0px 可拖区，traffic light 也跟 .toolbar__brand 重叠看不见。
       // 不使用 frame:false（去掉整个 OS 标题栏会破坏窗口拖拽/最小化/全屏手势）
-      titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+      titleBarStyle: 'default',
       ...(process.platform === 'win32' ? {
         titleBarOverlay: {
           color: '#1A1A1F',        // OS 标题栏背景（与 chrome UI .panel bg 接近）
