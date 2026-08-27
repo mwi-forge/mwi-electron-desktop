@@ -119,6 +119,44 @@
     window.api.views.getFocusedUrl().then(function (info) { setUrl(info && info.accountId, (info && info.url) || ''); }).catch(function () {});
   }
 
+  // === 空闲倒计时（per openspec/changes/idle-auto-stop 增强）===
+  // 主进程每秒 broadcast { items: [{ accountId, remainingMs, totalMs }] }；
+  // 显示当前 focused view 的 remaining；无 focused / 0 项 → 隐藏；< 30s 警告、< 10s 紧急
+  var elIdleCountdown = document.getElementById('stat-idle-countdown');
+  function fmtRemaining(ms) {
+    var sec = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function renderIdleCountdown(items) {
+    if (!elIdleCountdown) return;
+    if (!items || items.length === 0) {
+      elIdleCountdown.classList.add('statusbar__item--hidden');
+      elIdleCountdown.classList.remove('statusbar__item--warn', 'statusbar__item--error');
+      elIdleCountdown.title = '';
+      return;
+    }
+    // 多 view 时优先显示 focused tab 的 remaining；fallback 走第一个
+    var item = items[0];
+    if (items.length > 1 && window.mwiTabbar && window.mwiTabbar.getActiveTabId) {
+      var activeId = window.mwiTabbar.getActiveTabId();
+      for (var i = 0; i < items.length; i++) if (items[i].accountId === activeId) { item = items[i]; break; }
+    }
+    var sec = Math.ceil(item.remainingMs / 1000);
+    elIdleCountdown.textContent = t('statusbar.label.idle_countdown', { time: fmtRemaining(item.remainingMs) });
+    elIdleCountdown.classList.remove('statusbar__item--hidden');
+    elIdleCountdown.classList.remove('statusbar__item--warn', 'statusbar__item--error');
+    if (sec <= 10) elIdleCountdown.classList.add('statusbar__item--error');
+    else if (sec <= 30) elIdleCountdown.classList.add('statusbar__item--warn');
+    elIdleCountdown.title = t('statusbar.tooltip.idle_countdown', { time: fmtRemaining(item.remainingMs) });
+  }
+  if (window.api && window.api.views && typeof window.api.views.onIdleCountdown === 'function') {
+    window.api.views.onIdleCountdown(function (data) {
+      renderIdleCountdown(data && data.items);
+    });
+  }
+
   // 订阅 metrics:update 实时推送
   window.api.metrics.onUpdate(render);
 

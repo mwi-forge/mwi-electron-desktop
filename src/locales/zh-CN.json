@@ -73,6 +73,12 @@
   "settings.locale_label.en-US": "English (en-US)",
   "settings.locale_label.zh-CN": "中文 (zh-CN)",
   "settings.title": "设置 / Settings",
+  "settings.idleAutoStop.label": "无操作自动停止",
+  "settings.idleAutoStop.hint": "账号启动后，超过设定分钟数无任何键鼠活动将自动停止。设置为 0 表示关闭此功能。",
+  "settings.idleAutoStop.value": "{n} 分钟",
+  "settings.idleAutoStop.disabled": "已关闭",
+  "settings.idleAutoStop.enabled": "已启用",
+  "views.idleStopReason": "已被自动停止（空闲超时）",
   "sidebar.alert.subs_missing": "订阅管理模块未加载（subscription-tab.js 缺失）",
   "sidebar.btn.start.title": "启动",
   "sidebar.btn.stop.title": "停止",
@@ -87,6 +93,8 @@
   "statusbar.label.views": "views {count}/{max}",
   "statusbar.label.views_unlimited": "views {count}",
   "statusbar.label.url_placeholder": "未打开页面",
+  "statusbar.label.idle_countdown": "空闲倒计时 {time}",
+  "statusbar.tooltip.idle_countdown": "账号启动后无操作 {time} 自动停止",
   "statusbar.btn.apply_url": "应用为URL",
   "statusbar.alert.apply_url_failed": "应用为URL失败: {message}",
   "subscription.tab.alert.delete_fail": "删除失败: {message}",
@@ -145,3 +153,4 @@
   "bulk.alert.start_failed_summary": "部分账号启动失败（{count} 个）：\n{failures}",
   "bulk.alert.start_failed_item": "{name}: {error}"
 }
+

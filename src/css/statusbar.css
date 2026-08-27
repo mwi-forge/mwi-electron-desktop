@@ -115,3 +115,25 @@
   letter-spacing: 0.4px;
   color: var(--mwi-text-faint);
 }
+
+/* === 空闲倒计时（per openspec/changes/idle-auto-stop 增强：statusbar 实时显示）===
+   默认隐藏（statusbar__item--hidden）；有 running view 且 idleTimeoutMs > 0 时显示
+   remaining < 60s 时标红 + pulse 动画（与错误着色同款） */
+.statusbar__item--idle-countdown::before {
+  -webkit-mask: var(--mwi-ico-clock) no-repeat center / contain;
+  mask: var(--mwi-ico-clock) no-repeat center / contain;
+  /* 同款 clock 图标，借用 stat-uptime 的；如需独立图标后续在 tokens.css 加 */
+}
+.statusbar__item--hidden {
+  display: none !important;
+}
+.statusbar__item--idle-countdown.statusbar__item--warn {
+  /* 剩余 < 30s 警告（橙色） */
+  color: var(--mwi-status-warn);
+}
+.statusbar__item--idle-countdown.statusbar__item--error {
+  /* 剩余 < 10s 紧急（红色 + pulse），触达 0 时 view 被 stop */
+  color: var(--mwi-status-error);
+  font-weight: 600;
+  animation: mwi-pulse 1.6s ease-in-out infinite;
+}

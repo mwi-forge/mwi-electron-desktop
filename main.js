@@ -503,8 +503,11 @@ if (!gotTheLock) {
 
   // 退出前释放所有 gateway：SIGKILL 所有 mihomo 子进程，防止孤儿进程占端口池
   //（历史教训：应用退出后残留 mihomo 占 7890-7999，下次启动账号报 port_in_use）
+  // 同时清空 views idle timer 句柄（per openspec/changes/idle-auto-stop design Decision 8）
+  // 防止 setTimeout 在 quit 之后回调造成 unref 警告或回调里访问已销毁 view
   app.on('before-quit', () => {
     try { require('./lib/socks-gateway').releaseAll(); } catch (e) { /* ignore */ }
+    try { require('./lib/views').disposeAllIdleTimers(); } catch (e) { /* ignore */ }
   });
 
   app.on('window-all-closed', () => {
