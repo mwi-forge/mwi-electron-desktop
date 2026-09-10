@@ -9,6 +9,7 @@ const views = require('./lib/views');
 const logs = require('./lib/logs');
 const metrics = require('./lib/metrics');
 const alert = require('./lib/alert');
+const AssistantOverlay = require('./lib/assistant-overlay');
 
 // 资源优化：默认启用 GPU（反检测优先，避免 GPU 指纹缺失暴露无头特征）；
 // MWI_HW_ACCEL=0 时回退省电模式
@@ -112,6 +113,20 @@ if (!gotTheLock) {
       alert.resetPending();
       mainWindow = null;
     });
+
+    // 独立助手窗口（透明置顶悬浮窗，承载 mascot IP 形象）
+    // 单例：首次创建，或重建主窗口时只更新引用
+    if (!globalThis.__assistantOverlay) {
+      globalThis.__assistantOverlay = new AssistantOverlay(mainWindow, function recreate() { createMainWindow(); });
+
+
+
+    } else {
+      globalThis.__assistantOverlay.setMainWindow(mainWindow);
+    }
+
+    // macOS Dock 修复已内聚到 lib/assistant-overlay.js：
+    // setVisibleOnAllWorkspaces 会让 app 从 Dock 消失，模块内用 setActivationPolicy('regular') 恢复。
   }
 
   // 第二个实例启动时聚焦现有窗口
@@ -508,6 +523,7 @@ if (!gotTheLock) {
   app.on('before-quit', () => {
     try { require('./lib/socks-gateway').releaseAll(); } catch (e) { /* ignore */ }
     try { require('./lib/views').disposeAllIdleTimers(); } catch (e) { /* ignore */ }
+    try { if (globalThis.__assistantOverlay) globalThis.__assistantOverlay.destroy(); } catch (e) { /* ignore */ }
   });
 
   app.on('window-all-closed', () => {
@@ -519,7 +535,8 @@ if (!gotTheLock) {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    // 不使用 getAllWindows.length（助手窗口也算一个窗口，会误判）
+    if (!mainWindow) {
       createMainWindow();
     }
   });
