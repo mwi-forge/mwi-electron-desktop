@@ -1,6 +1,6 @@
 # 分支与发布规范
 
-适用于 `shenhuanjie/mwi-miuoooooo/mwi-electron-desktop` 仓库的 Git Flow 子集。
+适用于 `github.com/shenhuanjie/mwi-electron-desktop` 仓库的 Git Flow 子集。
 
 ## 分支模型
 
@@ -41,8 +41,8 @@
 | `perf` | 性能优化 |
 | `docs` | 文档变更 |
 | `test` | 测试增删 |
-| `build` | 构建系统 / 依赖变更（npm / .cnb.yml 等） |
-| `ci` | CI 配置变更（CNB settings、pipeline） |
+| `build` | 构建系统 / 依赖变更（npm / electron-builder 等） |
+| `ci` | CI 配置变更（GitHub Actions workflow） |
 | `chore` | 杂项（不影响构建/测试） |
 | `style` | 格式调整（不改逻辑）） |
 | `revert` | 回滚 |
@@ -57,24 +57,24 @@ BREAKING CHANGE 在 footer 单独一行 `BREAKING CHANGE: <说明>`。
 - `MINOR`：新功能（新增 tab 类型、新增 multi-account 模式等）
 - `PATCH`：bug 修复 / 依赖安全更新 / 文档 / 重构
 
-在 `main` 分支打 tag（CNB `POST /releases` 创建 release + tag + 上传 artifact）。
+在 `main` 分支打 tag（GitHub Releases 创建 release + tag + 上传 artifact，由 release workflow 自动完成）。
 
 ## 发布流程（4 端部署）
 
 1. `release/vX.Y.Z` 从 `develop` 切出，bump package.json 版本号，收尾 CHANGELOG，commit `chore(release): vX.Y.Z`
-2. PR：`release/vX.Y.Z` -> `main`，触发云构建跑 Linux AppImage；CI 必须 status check 通过
-3. PR merge 后云端自动跑 `release` pipeline（待加）：
-   - 上传 AppImage 到 `vX.Y.Z` GitHub-style release
-   - macOS 端：本机手动跑 `npm run dist:mac` + 公证，上传 dmg/zip 到 release
-   - Windows 端：CI 跑 `dist:win`（待加 wine pipeline），或本机手动
-4. tag 由 release pipeline 自动打在 merge commit 上
+2. PR：`release/vX.Y.Z` -> `main`，触发 pr-check 门禁；status check 必须通过
+3. PR merge 后自动触发 release workflow（GitHub Actions，matrix 三平台构建）：
+   - Linux AppImage / Windows nsis / macOS dmg+zip 统一上传到 `vX.Y.Z` GitHub Release
+   - latest*.yml 随 Release 附件发布，作为 electron-updater feed
+   - macOS 当前不签名不公证（签名/公证属阶段 2 投入）
+4. tag 由 release workflow 自动打在 merge commit 上
 
 ## hotfix 流程
 
 1. 从 `main` 切 `hotfix/<scope>` 分支
 2. commit `fixfix(<scope>): <description>`
 3. PR -> `main`，必 review（最少 1 人）+）+ status check
-4. merge 后自动 patch version bump（`X.Y.(Z+1)`），main 分支 pipeline 打新 tag + release
+4. merge 后自动 patch version bump（`X.Y.(Z+1)`），release workflow 打新 tag + GitHub Release
 5. 同步 PR：把 `hotfix/<scope>` merge 回 `develop`（rebase 或 fast-forward）
 
 ## PR 规范
@@ -96,71 +96,45 @@ BREAKING CHANGE 在 footer 单独一行 `BREAKING CHANGE: <说明>`。
 - 禁止 merge commit 信息写成 `merge branch 'xxx'`，用 squash
 - 禁止 commit 信息带 emoji（与项目文档风格一致）
 
-## CNB 配置落地清单
+## GitHub 配置落地清单
 
-待 git-settings 调用（参数已确认可行，见 cnb git-settings post-branch-protection --help）：
+在仓库 Settings 中配置（需仓库管理员权限）：
 
-1. **main 保护规则** rule=`main`：
-   - `allow-pushes=false` + `allow-master-pushes=true`（仅管理员直 push，merge 由 PR 完成）
-   - `required-must-push-via-pull-request=true`
-   - `required-pull-request-reviews=true` + `required-approved-review-count=1`
-   - `required-status-checks=true`（CI 必须过）
-   - `required-linear-history=true`
+1. **main 分支保护**（Settings → Branches → Add branch ruleset，rule=`main`）：
+   - Require a pull request before merging（Required approvals = 1）
+   - Require status checks to pass（pr-check workflow 必过）
+   - Require linear history
+   - Block force pushes
 
-2. **develop 保护规则** rule=`develop`：
-   - `allow-pushes=false` + `allow-master-pushes=true`
-   - `required-must-push-via-pull-request=true`
-   - `required-pull-request-reviews=true` + `required-approved-review-count=1`
-   - `required-status-checks=true`
+2. **develop 分支保护**（rule=`develop`）：
+   - Require a pull request before merging（Required approvals = 1）
+   - Require status checks to pass
+   - Block force pushes
    - **不强制** 线性历史（feature rebase 由开发者按需）
 
-3. **PR 设置**（`put-pull-request-settings`）：
-   - `allow-squash-merge=true`
-   - `allow-merge-commit-merge=false`（禁止 merge commit，强制 squash）
-   - `allow-rebase-merge=true`
-   - `squash-commit-message-style=pull_request_title`（squash 默认 commit 信息 = PR 标题，符合 Conventional Commits）
+3. **PR 合并设置**（Settings → General → Pull Requests）：
+   - Allow squash merging（默认 commit 信息 = PR 标题，符合 Conventional Commits）
+   - Allow rebase merging
+   - 关闭 Allow merge commits（强制 squash/rebase）
 
-4. **CI 配套**（`.cnb.yml` 待扩）：
-   - `main:` push -> build + release-upload
-   - `develop:` push -> build only
-   - `feature/**` push -> build only（验证）
-   - `hotfix/**` push -> build only（验证），merge 后由 main pipeline 发 release
+4. **Actions 权限**（Settings → Actions → General，已配置）：
+   - Actions permissions = Allow all actions
+   - Workflow permissions = Read and write（release 附件上传需要）
 
-## .cnb.yml 扩展方向
+## GitHub Actions 工作流规划
 
-最小版当前只覆盖 `main` 分支的 linux-build；扩成 4 个分支 pipeline 后形态：
+`.cnb.yml` 已随 CNB 旧仓库退役删除，CI 能力由 GitHub Actions 承接（实施见 ISSUE-251）：
 
-```yaml
-main:
-  push:
-    - name: linux-release
-      stages: [install-node-20, install-deps, build-linux, upload-release-asset]
-develop:
-  push:
-    - name: linux-build
-      stages: [install-node-20, install-deps, build-linux, list-output]
-'feature/**':
-  push:
-    - name: linux-build
-      stages: [install-node-20, install-deps, build-linux, list-output]
-'hotfix/**':
-  push:
-    - name: linux-build
-      stages: [install-node-20, install-deps, build-linux, list-output]
-  api_trigger:
-    - name: linux-build
-      stages: [...]
-```
-
-分支通配符 `feature/**` / `hotfix/**` 是 CNB .cnb.yml 标准语法（GitLab CI YAML 兼容）。
+- **pr-check workflow**：PR 触发，install + unit-test + 覆盖率门禁（lines ≥ 60% / diffLines ≥ 70%），作为 main 分支保护的 status check。
+- **release workflow**：`release/vX.Y.Z` 合并 `main` 触发，matrix 三平台构建——linux(AppImage) / windows(nsis) / mac(dmg+zip，当前不签名)——产物统一挂到 GitHub Releases 对应 `vX.Y.Z` Release，latest*.yml 随附件发布。
 
 ## 落地顺序（建议）
 
 1. **写本文档**（已完成）
 2. **配 PR 模板** `.github/PULL_REQUEST_TEMPLATE.md`（自动填充 PR body 模板）
 3. **配 commit template** `.gitmessage`（`git config commit.template .gitmessage`）
-4. **配 CNB 保护分支规则**（需 `repo-manage:rw` 权限，已确认当前 PAT 缺，需用户用 cnb login 重新 OAuth 授权）
-5. **配 PR 设置**（同 4）
-6. **扩 .cnb.yml 多分支 pipeline**
-7. **加 release upload stage**（上传到 CNB releases）
+4. **配 GitHub main 分支保护**（需仓库管理员在 Settings 操作，ISSUE-251 前置）
+5. **配 PR 合并设置**（同 4）
+6. **落地 GHA pr-check / release workflow**（ISSUE-251）
+7. **electron-updater feed 验证**（GitHub Releases 附件 URL 公开可 GET，ISSUE-251）
 8. **加 PR body lint**（可选，PR body 必须含验证方式）
