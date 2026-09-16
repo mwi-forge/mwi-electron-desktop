@@ -35,7 +35,7 @@
 
 ## 快速开始
 
-环境要求：Node.js 18+（建议使用 LTS），npm 或 yarn。
+环境要求：Node.js 18+（建议使用 LTS），包管理器统一使用 npm（lockfile 为 package-lock.json）。
 
 ```bash
 # 安装依赖
@@ -49,7 +49,7 @@ npm run dev
 npm run dist              # 当前平台默认 target
 npm run dist:mac          # macOS dmg + zip
 npm run dist:win          # Windows nsis + portable
-npm run dist:linux        # Linux AppImage + deb
+npm run dist:linux        # Linux AppImage
 npm run dist:dir          # 仅打包成目录（快速验证，不生成安装器）
 ```
 
@@ -61,22 +61,32 @@ mwi-electron-desktop/
 ├── preload.js                    # 预加载（contextBridge 暴露 window.api）
 ├── lib/                          # 主进程模块
 │   ├── accounts.js               # 账号数据层（CRUD + 持久化 + 代理密码自动加密）
-│   ├── safe-storage.js           # Electron safeStorage 包装
+│   ├── subscriptions.js          # Clash 订阅管理（CRUD + 自动刷新 + 节点敏感字段加密）
+│   ├── clash.js                  # Clash 订阅解析（YAML / base64 → 统一节点 schema）
+│   ├── socks-gateway.js          # 本地 SOCKS5 网关池（mihomo 子进程，同节点共享复用）
 │   ├── proxy.js                  # per-session 代理设置
+│   ├── safe-storage.js           # Electron safeStorage 包装
 │   ├── fingerprint.js            # 指纹画像 + 注入脚本（3 预设 + 每账号 seed）
+│   ├── fingerprint-snapshots.js  # 目标浏览器完整画像 snapshot（单一事实源）
+│   ├── sec-headers.js            # Sec-CH-UA / Sec-Fetch-* 头计算（防 Client Hints 关联）
 │   ├── tampermonkey.js           # per-session 油猴扩展加载（含失败降级）
-│   ├── views.js                  # WebContentsView 池管理（6 上限）
+│   ├── views.js                  # WebContentsView 池管理（无并发上限，MAX_VIEWS=0）
+│   ├── alert.js                  # 主进程侧统一弹窗 API（渲染进程暗色 modal 承载）
+│   ├── i18n.js                   # locale 持久化 + 主进程 API
+│   ├── assistant-overlay.js      # 独立透明置顶助手窗口底座
 │   ├── logs.js                   # 日志环形缓冲
 │   ├── metrics.js                # app.getAppMetrics 聚合 + 推流
-│   └── ipc.js                    # IPC handlers 注册
+│   ├── ipc.js                    # IPC handlers 注册
+│   └── __tests__/                # 主进程模块单元测试（node --test）
 ├── src/                          # 渲染进程
 │   ├── index.html                # 主控制台 5 栏 DOM
 │   ├── css/                      # DSH 深色配色 token + 5 栏布局
-│   └── js/                       # store + sidebar + tabbar + panel + statusbar + app
+│   └── js/                       # store + sidebar + tabbar + panel + statusbar + app 等
 ├── resources/
 │   └── tampermonkey/             # Tampermonkey 扩展解压目录（含 manifest.json + README 安装说明）
-├── docs/
-│   └── 项目背景及方案（交接）20260818.md
+├── tests/                        # 集成 / E2E 测试
+├── scripts/                      # 构建辅助脚本（图标资源、油猴 shim 补丁）
+├── docs/                         # 设计与交接文档
 └── package.json
 ```
 
@@ -86,7 +96,7 @@ mwi-electron-desktop/
 - appId: `com.mwi.desktop`，productName: `MWI Multi-Account Manager`
 - macOS target: dmg + zip（ad-hoc 本地签名；`mac.identity=null`）
 - Windows target: nsis + portable
-- Linux target: AppImage + deb
+- Linux target: AppImage
 - Tampermonkey 扩展目录通过 `extraResources` 打包进应用资源
 - 代理配置由用户填写，不硬编码
 - 国内网络用户：已配 `electronDownload.mirror` 指向 npmmirror，npm run dist 直接走镜像，无需额外设环境变量
@@ -133,3 +143,4 @@ mwi-electron-desktop/
 
 - [项目背景及方案（交接）](docs/项目背景及方案（交接）20260818.md) - 总体架构 + 账号隔离 + 代理 + 指纹设计
 - [UI Spec](docs/ui-spec.md) - 主控制台 UI 设计规范（布局 + 配色 token + 组件 + 交互流程 + 状态机）
+- [fingerprint spoof → snapshot 架构重构交接](docs/HANDOVER-fingerprint-spoof.md) - 指纹画像 snapshot 化重构的设计与交接记录
