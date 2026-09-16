@@ -26,5 +26,6 @@ for (const [key, varName] of Object.entries(TOKEN_TO_CSS)) {
 
 if (changed) {
   fs.writeFileSync(cssPath, css);
+  console.warn('[layout-tokens] tokens.css 与 lib/layout-metrics.js 不同步，已再生覆盖；请勿手改 tokens.css（会被覆盖），改 lib/layout-metrics.js');
   console.log('[layout-tokens] tokens.css synced from lib/layout-metrics.js');
 }
