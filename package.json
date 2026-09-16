@@ -32,6 +32,11 @@
     "name": "KUN"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shenhuanjie/mwi-electron-desktop.git"
+  },
+  "homepage": "https://github.com/shenhuanjie/mwi-electron-desktop",
   "devDependencies": {
     "electron": "^43.4.0",
     "electron-builder": "^26.15.3"
