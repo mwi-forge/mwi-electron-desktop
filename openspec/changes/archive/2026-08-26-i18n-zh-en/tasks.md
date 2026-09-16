@@ -37,7 +37,7 @@
 
 - [ ] 5.1 Create `tests/i18n.test.mjs` covering all spec scenarios (parse the spec.md requirement + scenario headings to ensure coverage):
   - node:test, not Jest
-  - mock `window` and `document.documentElement` in the test harness (per existing project test convention seen in `src-test/` or scripts)
+  - mock `window` and `document.documentElement` in the test harness (per existing project test convention seen in `lib/__tests__/` or scripts)
   - cases: hit / miss / cross-locale fallback / both miss returns literal / variable interpolation / setLocale updates `document.documentElement.lang` / unsupported code falls back / persistence round-trip via fake electron-store
 - [ ] 5.2 Run `node --test tests/i18n.test.mjs` and confirm `0 fail`; record the output summary in commit message
 
