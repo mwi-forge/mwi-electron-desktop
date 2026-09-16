@@ -1,6 +1,6 @@
-// src/js/store.js - 简单发布订阅 state（全局 IIFE，无模块依赖）
+// src/js/store.js - 简单发布订阅 state（ES module，无依赖）
 
-window.mwiStore = (function () {
+export const store = (function () {
   const state = {
     accounts: [],
     groups: [],
