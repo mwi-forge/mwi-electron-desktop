@@ -9,6 +9,7 @@ const views = require('./lib/views');
 const logs = require('./lib/logs');
 const metrics = require('./lib/metrics');
 const alert = require('./lib/alert');
+const AssistantOverlay = require('./lib/assistant-overlay');
 
 // 资源优化：默认启用 GPU（反检测优先，避免 GPU 指纹缺失暴露无头特征）；
 // MWI_HW_ACCEL=0 时回退省电模式
@@ -36,9 +37,11 @@ if (!gotTheLock) {
       // === 深色标题栏策略 ===
       // Win11: titleBarOverlay 让 OS 标题栏背景=深色、控件=浅色（与 chrome UI 自然融合）
       // Win10: 没有 native API 改 OS 标题栏颜色，titleBarOverlay 被忽略但不影响 frame
-      // macOS: titleBarStyle='hidden' 隐藏标题栏，由 chrome UI toolbar 接管
+      // macOS: titleBarStyle='default' 用 OS 原生标题栏（带拖动 + 红绿灯 + 系统菜单栏）。
+      // 2026-08-22 临时改回 default —— hidden 模式 + .toolbar 没加 -webkit-app-region drag
+      // 导致整个窗口顶部 0px 可拖区，traffic light 也跟 .toolbar__brand 重叠看不见。
       // 不使用 frame:false（去掉整个 OS 标题栏会破坏窗口拖拽/最小化/全屏手势）
-      titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+      titleBarStyle: 'default',
       ...(process.platform === 'win32' ? {
         titleBarOverlay: {
           color: '#1A1A1F',        // OS 标题栏背景（与 chrome UI .panel bg 接近）
@@ -76,6 +79,8 @@ if (!gotTheLock) {
         mainWindow.webContents.send('account:state-changed', { accountId: evt.accountId, state: evt.state });
       } else if (evt.type === 'focus') {
         mainWindow.webContents.send('view:focus-changed', { accountId: evt.accountId });
+      } else if (evt.type === 'url') {
+        mainWindow.webContents.send('view:url-changed', { accountId: evt.accountId, url: evt.url });
       }
     });
 
@@ -108,6 +113,20 @@ if (!gotTheLock) {
       alert.resetPending();
       mainWindow = null;
     });
+
+    // 独立助手窗口（透明置顶悬浮窗，承载 mascot IP 形象）
+    // 单例：首次创建，或重建主窗口时只更新引用
+    if (!globalThis.__assistantOverlay) {
+      globalThis.__assistantOverlay = new AssistantOverlay(mainWindow, function recreate() { createMainWindow(); });
+
+
+
+    } else {
+      globalThis.__assistantOverlay.setMainWindow(mainWindow);
+    }
+
+    // macOS Dock 修复已内聚到 lib/assistant-overlay.js：
+    // setVisibleOnAllWorkspaces 会让 app 从 Dock 消失，模块内用 setActivationPolicy('regular') 恢复。
   }
 
   // 第二个实例启动时聚焦现有窗口
@@ -499,8 +518,12 @@ if (!gotTheLock) {
 
   // 退出前释放所有 gateway：SIGKILL 所有 mihomo 子进程，防止孤儿进程占端口池
   //（历史教训：应用退出后残留 mihomo 占 7890-7999，下次启动账号报 port_in_use）
+  // 同时清空 views idle timer 句柄（per openspec/changes/idle-auto-stop design Decision 8）
+  // 防止 setTimeout 在 quit 之后回调造成 unref 警告或回调里访问已销毁 view
   app.on('before-quit', () => {
     try { require('./lib/socks-gateway').releaseAll(); } catch (e) { /* ignore */ }
+    try { require('./lib/views').disposeAllIdleTimers(); } catch (e) { /* ignore */ }
+    try { if (globalThis.__assistantOverlay) globalThis.__assistantOverlay.destroy(); } catch (e) { /* ignore */ }
   });
 
   app.on('window-all-closed', () => {
@@ -512,7 +535,8 @@ if (!gotTheLock) {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    // 不使用 getAllWindows.length（助手窗口也算一个窗口，会误判）
+    if (!mainWindow) {
       createMainWindow();
     }
   });

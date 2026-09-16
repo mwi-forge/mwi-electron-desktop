@@ -15,8 +15,9 @@
 
   const api = window.api;
 
-  // 状态：当前正在显示的 dialog（null = 空闲）+ 队列
+  // 状态：当前正在显示的 dialog（null = 空闲）+ 队列 + 渲染中标记（防异步渲染竞态）
   let currentEl = null;
+  let rendering = false;
   const queue = [];
 
   function ensureSlot() {
@@ -41,8 +42,24 @@
    *   function finish 块级提升到 executor 顶部，对 button click / keydown /
    *   backdrop click 三处 handler 都可见（避免外层引用内层声明的 ReferenceError）。
    */
-  function renderDialog(payload) {
+  async function renderDialog(payload) {
+    rendering = true; // 标记渲染中，防止 await hideFocused 期间 pump 并发渲染下一个弹窗
     const slot = ensureSlot();
+
+    // === 弹窗前先卸下 focused WebContentsView（若在）===
+    // 原生 WebContentsView 永远渲染在窗口 web 内容之上，会把渲染进程里的 DOM 弹窗（#mwi-alert-slot）
+    // 盖住。这里在展示弹窗前调用 api.canvas.hideFocused() 把挂载的 focused 视图卸下，
+    // DOM 弹窗即可浮到最上层。仅当「确实卸下了一个视图」（hideFocused 返回 true）时，
+    // 才在弹窗关闭时 resume 恢复——避免弹窗打开时正处于「表单 tab 已隐藏视图」状态而被误恢复覆盖表单。
+    let hidFocused = false;
+    try {
+      if (api && api.canvas && typeof api.canvas.hideFocused === 'function') {
+        hidFocused = !!(await api.canvas.hideFocused());
+      }
+    } catch (e) {
+      console.warn('[modal] hideFocused failed:', (e && e.message) || e);
+    }
+
     return new Promise((resolve) => {
       // === DOM 构建 ===
       const backdrop = document.createElement('div');
@@ -152,13 +169,29 @@
         try { backdrop.removeEventListener('click', onBackdropClick); } catch (_) {}
         try { backdrop.parentNode && backdrop.parentNode.removeChild(backdrop); } catch (_) {}
         try { document.body.style.overflow = prevOverflow; } catch (_) {}
-        currentEl = null;
-        // 主进程 IPC 来源的回执
+        // 主进程 IPC 来源的回执（同步，尽快让主进程继续）
         if (payload._source === 'main' && api && api.dialog && api.dialog.reply) {
           try { api.dialog.reply(payload.id, idx); } catch (e) { console.error('[modal] reply failed:', e); }
         }
-        resolve(idx);
-        pump();
+        // 仅在确实卸下过视图时才恢复（hideFocused 返回了 true），避免误覆盖
+        // 「表单 tab 已隐藏视图」的状态；resume 异步完成后才置空 currentEl 并 resolve+pump，
+        // 确保下一个弹窗一定是在视图恢复之后才渲染，避免视图再次盖住新弹窗。
+        const finalize = () => {
+          currentEl = null;
+          rendering = false;
+          resolve(idx);
+          pump();
+        };
+        if (hidFocused && api && api.canvas && typeof api.canvas.resumeFocused === 'function') {
+          api.canvas.resumeFocused()
+            .then(finalize)
+            .catch((e) => {
+              console.warn('[modal] resumeFocused failed:', (e && e.message) || e);
+              finalize();
+            });
+        } else {
+          finalize();
+        }
       }
 
       currentEl = dialog;
@@ -166,7 +199,7 @@
   }
 
   function pump() {
-    if (currentEl) return; // 已有对话框在显示
+    if (currentEl || rendering) return; // 已有对话框在显示 或 正在渲染（await hideFocused 期间 currentEl 尚未置位）
     const next = queue.shift();
     if (!next) return;
     // 标记 fromMain（区分 IPC 来源 vs 渲染进程直接调用），缺省视为 local

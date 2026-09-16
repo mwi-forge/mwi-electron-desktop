@@ -64,6 +64,12 @@
       var isError = typeof state === 'string' && state.indexOf('error') === 0;
       var statusClass = isRunning ? 'tab__dot--running' : (isError ? 'tab__dot--error' : 'tab__dot--stopped');
       var statusMark = isRunning ? '*' : (isError ? '!' : 'o');
+      // idle auto-stop 提示（per openspec/changes/idle-auto-stop design Decision 9.1）：
+      // state 为 'stopped:idle_timeout' 时把 i18n 文案挂到 title，hover 时给用户反馈
+      // tab 自身仍渲染为 stopped dot（与普通 stopped 视觉一致；title 仅作辅助信息）
+      var idleTitle = (state === 'stopped:idle_timeout' && window.mwiI18n && window.mwiI18n.t)
+        ? window.mwiI18n.t('views.idleStopReason')
+        : '关闭 tab';
       parts.push(
         '<div class="tab' + (focused ? ' tab--focused' : '') + '" data-tab-type="game" data-account-id="' + id + '">' +
         '<span class="tab__dot ' + statusClass + '">' + statusMark + '</span>' +
@@ -439,7 +445,8 @@
     var next = cur;
     if (state === 'starting' || state === 'running') {
       if (cur.indexOf(id) === -1) next = cur.concat([id]);
-    } else if (state === 'stopped' || (typeof state === 'string' && state.indexOf('error') === 0)) {
+    } else if (typeof state === 'string' && (state === 'stopped' || state.indexOf('stopped:') === 0 || state.indexOf('error') === 0)) {
+      // 识别 stopped / stopped:* (idle_timeout) / error:* 三类终止态，从 runningIds 移除
       next = cur.filter(function (x) { return x !== id; });
     }
     window.mwiStore.set({ runningIds: next, viewStates: Object.fromEntries(localStates) });

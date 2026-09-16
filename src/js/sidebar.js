@@ -69,6 +69,9 @@
           var st = (s.viewStates || {})[a.id] || 'stopped';
           var isRunning = st === 'running';
           var isError = typeof st === 'string' && st.indexOf('error') === 0;
+          // 快捷启动/停止：runningIds 涵盖 'starting' + 'running'（tabbar 同步），
+          // 启动中也能点停止来取消；判断标准与右侧详情面板一致。
+          var isActive = (s.runningIds || []).indexOf(a.id) !== -1;
           var dotClass = isRunning ? 'account__dot--running' : (isError ? 'account__dot--error' : 'account__dot--stopped');
           var dotTitle = isRunning ? t('sidebar.status.running') : (isError ? t('sidebar.status.error') : t('sidebar.status.stopped'));
           parts.push(
@@ -76,8 +79,7 @@
             '<span class="account__dot ' + dotClass + '" title="' + dotTitle + '">o</span>' +
             '<span class="account__name">' + escapeHtml(a.name) + '</span>' +
             '<span class="account__actions">' +
-            '<button class="btn-icon" data-action="edit" data-id="' + a.id + '" title="' + t('sidebar.btn.edit.title') + '">[E]</button>' +
-            '<button class="btn-icon" data-action="remove" data-id="' + a.id + '" title="' + t('sidebar.btn.remove.title') + '">[X]</button>' +
+            '<button class="btn-icon btn-icon--toggle' + (isActive ? ' btn-icon--stop' : '') + '" data-action="toggle" data-id="' + a.id + '" data-running="' + (isActive ? '1' : '0') + '" title="' + t(isActive ? 'sidebar.btn.stop.title' : 'sidebar.btn.start.title') + '">' + (isActive ? '[S]' : '[P]') + '</button>' +
             '</span>' +
             '</li>'
           );
@@ -126,19 +128,26 @@
         ev.stopPropagation();
         var action = el.dataset.action;
         var id = el.dataset.id;
-        if (action === 'edit') {
-          var acc = window.mwiStore.get().accounts.find(function (x) { return x.id === id; });
-          openModal(acc);
-        } else if (action === 'remove') {
-          if (!await window.mwiAlert.confirm({ message: t('sidebar.confirm.remove', { id: id }) })) return;
-          await window.api.accounts.remove(id);
-          var cur = window.mwiStore.get().focusedAccountId;
-          if (cur === id) window.mwiStore.set({ focusedAccountId: null });
-          // 同步清掉 preview tab（如有）
-          if (window.mwiTabbar && window.mwiTabbar.clearPreviewTab) {
-            window.mwiTabbar.clearPreviewTab();
+        if (action === 'toggle') {
+          var running = (window.mwiStore.get().runningIds || []).indexOf(id) !== -1;
+          if (running) {
+            await window.api.views.stop(id);
+          } else {
+            // 启动前清掉同一账号的 preview tab（与 panel.js 启动逻辑一致）
+            if (window.mwiTabbar && window.mwiTabbar.clearPreviewTab &&
+                window.mwiTabbar.getPreviewTabId && window.mwiTabbar.getPreviewTabId() === id) {
+              window.mwiTabbar.clearPreviewTab();
+            }
+            var r = await window.api.views.start(id);
+            if (r && r.ok === false && r.error !== 'cancelled') {
+              window.mwiAlert.alert({ type: 'error', message: t('panel.alert.start_failed', { error: r.error || 'unknown' }) });
+              return;
+            }
+            // 启动成功后聚焦该账号 game view，让中部立即显示游戏画面
+            if (window.api && window.api.views && window.api.views.focus) {
+              try { await window.api.views.focus(id); } catch (e) { /* ignore */ }
+            }
           }
-          await refresh();
         }
       });
     });

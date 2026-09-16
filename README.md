@@ -76,7 +76,7 @@ mwi-electron-desktop/
 ├── resources/
 │   └── tampermonkey/             # Tampermonkey 扩展解压目录（含 manifest.json + README 安装说明）
 ├── docs/
-│   └── 项目背景及方案（交接）#20260818.md
+│   └── 项目背景及方案（交接）20260818.md
 └── package.json
 ```
 
@@ -131,5 +131,5 @@ mwi-electron-desktop/
 
 ## 参考文档
 
-- [项目背景及方案（交接）](docs/项目背景及方案（交接）#20260818.md) - 总体架构 + 账号隔离 + 代理 + 指纹设计
+- [项目背景及方案（交接）](docs/项目背景及方案（交接）20260818.md) - 总体架构 + 账号隔离 + 代理 + 指纹设计
 - [UI Spec](docs/ui-spec.md) - 主控制台 UI 设计规范（布局 + 配色 token + 组件 + 交互流程 + 状态机）

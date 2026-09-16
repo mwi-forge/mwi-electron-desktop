@@ -47,12 +47,20 @@ const documentMock = {
   },
 };
 const windowMock = {
-  api: { dialog: {
-   _onShowCb: null,
-   onShow(cb) { this._onShowCb = cb; return () => { this._onShowCb = null; }; },
-   reply(id, idx) { windowMock._lastReply = { id, idx }; },
-  } },
+  api: {
+   dialog: {
+     _onShowCb: null,
+     onShow(cb) { this._onShowCb = cb; return () => { this._onShowCb = null; }; },
+     reply(id, idx) { windowMock._lastReply = { id, idx }; },
+   },
+   // api.canvas 桩：默认 resolve(false)，可注入挂起的 hideFocused 以复现「渲染中」竞态
+   canvas: {
+     hideFocused() { return windowMock._canvasHide ? windowMock._canvasHide() : Promise.resolve(false); },
+     resumeFocused() { return Promise.resolve(true); },
+   },
+  },
   _lastReply: null,
+  _canvasHide: null,
 };
 
 // 跑 modal.js（vm 共享引用）
@@ -197,4 +205,31 @@ test('10. body scroll lock + cleanup（弹窗关闭后 body overflow 还原）',
   getAllButtons()[0].dispatch('click', {});
   await p;
   assert.equal(documentMock.body.style.overflow, 'auto', '关闭后应还原');
+});
+
+test('11. 渲染中二次 alert 不叠加（hideFocused pending 时）', async () => {
+  // 复现真实竞态：renderDialog 停在 await hideFocused（rendering=true、currentEl 未置位），
+  // 此时再次 alert 不应并发渲染（否则两个轮回叠在一起）。
+  let resolveHide;
+  windowMock._canvasHide = () => new Promise(res => { resolveHide = res; });
+  const p1 = mwiAlert.alert({ title: '渲染中一', message: 'A' });
+  const p2 = mwiAlert.alert({ title: '渲染中二', message: 'B' });
+  // hideFocused 未 resolve 前，不应渲染任何弹窗
+  assert.equal(getTitles().length, 0, 'hideFocused 未完成前不应渲染弹窗');
+  // 释放 hideFocused → p1 渲染；随后恢复默认桩（hideFocused resolve(false)），让 p2 能正常渲染
+  resolveHide(false);
+  windowMock._canvasHide = null;
+  await new Promise(r => setImmediate(r));
+  let titles = getTitles();
+  assert.ok(titles.includes('渲染中一'), 'p1 应渲染');
+  assert.ok(!titles.includes('渲染中二'), 'p2 不应叠加渲染');
+  // 关闭 p1 → p2 串行渲染
+  getAllButtons()[0].dispatch('click', {});
+  await p1;
+  await new Promise(r => setImmediate(r));
+  titles = getTitles();
+  assert.ok(titles.includes('渲染中二'), '关闭 p1 后 p2 应渲染');
+  getAllButtons()[0].dispatch('click', {});
+  await p2;
+  windowMock._canvasHide = null;
 });
