@@ -72,8 +72,8 @@ BREAKING CHANGE 在 footer 单独一行 `BREAKING CHANGE: <说明>`。
 ## hotfix 流程
 
 1. 从 `main` 切 `hotfix/<scope>` 分支
-2. commit `fixfix(<scope>): <description>`
-3. PR -> `main`，必 review（最少 1 人）+）+ status check
+2. commit `fix(<scope>): <description>`
+3. PR -> `main`，必 review（最少 1 人）+ status check
 4. merge 后自动 patch version bump（`X.Y.(Z+1)`），release workflow 打新 tag + GitHub Release
 5. 同步 PR：把 `hotfix/<scope>` merge 回 `develop`（rebase 或 fast-forward）
 
