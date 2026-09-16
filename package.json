@@ -136,6 +136,9 @@
         }
       ]
     },
-    "publish": null
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/shenhuanjie/mwi-electron-desktop/releases/download/"
+    }
   }
 }
