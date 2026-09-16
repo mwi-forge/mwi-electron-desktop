@@ -130,6 +130,15 @@ jobs:
           mv dist/latest-mac.yml dist/latest-mac-arm64.yml
           npm run dist:mac -- --publish never --x64
           mv dist/latest-mac.yml dist/latest-mac-x64.yml
+          node -e "
+            const { parse, stringify } = require('yaml');
+            const fs = require('fs');
+            const arm = parse(fs.readFileSync('dist/latest-mac-arm64.yml', 'utf8'));
+            const x64 = parse(fs.readFileSync('dist/latest-mac-x64.yml', 'utf8'));
+            const merged = { ...arm, files: [...x64.files, ...arm.files] };
+            fs.writeFileSync('dist/latest-mac.yml', stringify(merged));
+            console.log('latest-mac.yml merged: ' + merged.files.length + ' file entries');
+          "
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -158,28 +167,10 @@ jobs:
       VERSION: ${{ needs.detect.outputs.version }}
       SHA: ${{ needs.detect.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
-
-      - name: Merge mac update-info (x64 + arm64)
-        run: |
-          node -e "
-            const { parse, stringify } = require('yaml');
-            const fs = require('fs');
-            const arm = parse(fs.readFileSync('artifacts/latest-mac-arm64.yml', 'utf8'));
-            const x64 = parse(fs.readFileSync('artifacts/latest-mac-x64.yml', 'utf8'));
-            const merged = { ...arm, files: [...x64.files, ...arm.files] };
-            fs.writeFileSync('artifacts/latest-mac.yml', stringify(merged));
-            console.log('latest-mac.yml 合并完成: ' + merged.files.length + ' 个文件条目');
-          "
 
       - name: Create release and upload assets
         run: |
