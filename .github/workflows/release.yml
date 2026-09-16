@@ -1,0 +1,167 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号 vX.Y.Z（留空则取 package.json 当前版本）'
+        required: false
+        type: string
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: detect release merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      should_run: ${{ steps.detect.outputs.should_run }}
+      version: ${{ steps.detect.outputs.version }}
+      sha: ${{ steps.detect.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+            if [ -z "$VERSION" ]; then
+              VERSION="v$(node -p "require('./package.json').version")"
+            fi
+            case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
+            {
+              echo "should_run=true"
+              echo "version=$VERSION"
+            } >> "$GITHUB_OUTPUT"
+            echo "手动触发，发布 $VERSION"
+            exit 0
+          fi
+
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          VER="$(printf '%s' "$HEAD_MSG" | grep -oE 'chore\(release\): *v?[0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+          if [ -z "$VER" ]; then
+            VER="$(printf '%s' "$HEAD_MSG" | grep -oE 'from [^ ]*release/v[0-9]+\.[0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+          fi
+
+          if [ -z "$VER" ]; then
+            echo "非 release 合并提交，跳过发布"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          elif [ "v$VER" != "$PKG_VERSION" ]; then
+            echo "提交信息版本 v$VER 与 package.json $PKG_VERSION 不一致，跳过发布"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          elif git rev-parse -q --verify "refs/tags/v$VER" >/dev/null; then
+            echo "tag v$VER 已存在，跳过发布"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "should_run=true"
+              echo "version=v$VER"
+            } >> "$GITHUB_OUTPUT"
+            echo "识别为 release 合并，发布 v$VER"
+          fi
+          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build (${{ matrix.platform }})
+    needs: detect
+    if: needs.detect.outputs.should_run == 'true'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            dist: dist:linux
+            args: ''
+          - os: windows-latest
+            platform: win
+            dist: dist:win
+            args: ''
+          - os: macos-latest
+            platform: mac
+            dist: dist:mac
+            args: '--x64 --arm64'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          (cd node_modules/electron && node install.js)
+
+      - name: Build ${{ matrix.platform }} artifacts
+        env:
+          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
+        run: npm run ${{ matrix.dist }} -- --publish never ${{ matrix.args }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.platform }}
+          if-no-files-found: error
+          path: |
+            dist/*.AppImage
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.blockmap
+            dist/latest*.yml
+
+  publish:
+    name: publish GitHub Release
+    needs: [detect, build]
+    if: needs.detect.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.detect.outputs.version }}
+      SHA: ${{ needs.detect.outputs.sha }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release and upload assets
+        run: |
+          set -euo pipefail
+          ls -la artifacts/
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" --target "$SHA" --title "$VERSION" --generate-notes
+          fi
+          shopt -s nullglob
+          files=(artifacts/*)
+          gh release upload "$VERSION" "${files[@]}" --clobber
+          echo "Release $VERSION 已发布，附件 $(echo "${files[@]}" | wc -w | tr -d ' ') 个"
