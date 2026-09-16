@@ -51,7 +51,7 @@
   --mwi-radius-xl:   18px;
   --mwi-radius-pill: 999px;
 
-  /* ===== 尺寸（硬约束：与主进程 bounds 计算一致，勿改）===== */
+  /* ===== 尺寸（单一来源 lib/layout-metrics.js，经 scripts/layout-tokens.mjs 构建期同步，勿手改）===== */
   --mwi-toolbar-h:   48px;
   --mwi-tabbar-h:    36px;
   --mwi-statusbar-h: 32px;
