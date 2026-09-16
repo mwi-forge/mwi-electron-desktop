@@ -23,6 +23,9 @@ Thumbs.db
 userData/
 Partitions/
 
+# mihomo 二进制不入库：dev/打包前经 scripts/fetch-mihomo.mjs 从 GitHub Releases 拉取
+resources/mihomo/
+
 # 遗留的用户数据文件（历史误提交；运行时数据实际存于 userData/）
 Manager/
 

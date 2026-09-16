@@ -4,8 +4,8 @@
   "description": "Electron Desktop Multi-Account Browser: simultaneously log in to multiple web game accounts on the same computer, with completely isolated account environments, Tampermonkey script extension support, low resource consumption, and anti-association capabilities.",
   "main": "main.js",
   "scripts": {
-    "start": "node scripts/build-icon-assets.mjs && electron .",
-    "dev": "node scripts/build-icon-assets.mjs && MWI_DEV=1 electron .",
+    "start": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron .",
+    "dev": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && MWI_DEV=1 electron .",
     "test": "node --test \"tests/**/*.test.js\" \"lib/__tests__/**/*.test.js\"",
     "test:modal": "node --test tests/modal-e2e.test.js",
     "test:lib": "node --test \"lib/__tests__/**/*.test.js\"",
@@ -14,14 +14,13 @@
     "test:tm-bg": "electron tests/tampermonkey-bg.e2e.js",
     "bump": "npm version --no-git-tag-version",
     "build:icons": "node scripts/build-icon-assets.mjs",
-    "prebuild": "node scripts/build-icon-assets.mjs",
-    "prepack": "node scripts/build-icon-assets.mjs",
+    "prepack": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs",
     "pretest": "node scripts/build-icon-assets.mjs",
-    "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux",
-    "dist:dir": "electron-builder --dir"
+    "dist": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder",
+    "dist:mac": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --mac",
+    "dist:win": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --win",
+    "dist:linux": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --linux",
+    "dist:dir": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --dir"
   },
   "keywords": [
     "electron",
