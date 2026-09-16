@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node scripts/build-icon-assets.mjs && electron .",
     "dev": "node scripts/build-icon-assets.mjs && MWI_DEV=1 electron .",
-    "test": "node --test \"tests/**/*.test.js\"",
+    "test": "node --test \"tests/**/*.test.js\" \"tests/**/*.test.mjs\"",
     "test:modal": "node --test tests/modal-e2e.test.js",
     "test:electron": "node tests/integration-electron.js show && node tests/integration-electron.js click && node tests/integration-electron.js esc",
     "test:tm-bg": "electron tests/tampermonkey-bg.e2e.js",
