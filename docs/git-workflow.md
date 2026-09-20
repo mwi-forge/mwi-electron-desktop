@@ -94,6 +94,15 @@ tag 与 GitHub Release 由 release workflow 自动创建，不手动打 tag。
 - PR 大小：单 PR 不超过 800 行 diff（批次 / 迁移类除外，需在描述中说明）
 - 合并方式：小 PR 用 squash（保持线性）；批次 / 迁移类多提交 PR 可用 merge commit 保留链路（如 PR #13/#14）
 
+## 需求与 BUG 管理
+
+- **GitHub Issue 是执行闭环的单一事实源**：要做/在修什么、验收标准、open/closed 状态，以 issue 为准
+- 需求走「需求 / 功能建议」模板（动机 + 验收标准必填）；BUG 走「BUG 报告」模板（复现步骤 + 环境必填），模板位于 `.github/ISSUE_TEMPLATE/`
+- Label 最小集：`type:feat` / `type:bug` / `type:chore` + `p0` / `p1` / `p2`（严重程度），p0=阻断使用/数据损坏、p1=主要功能受损、p2=体验问题
+- 方案设计、技术选型、踩坑复盘等知识性文档归档思源笔记（PARA 项目夹 `20260831-MWI账号桌面端项目开发`），issue 与思源文档互相放链接；**执行态事实以 issue 为准，思源文档落笔即冻结**
+- 修 bug 必补回归测试（先红后绿），与 CI 覆盖率门禁互为防线
+- openspec 规格驱动体系已于 2026-09-20 退役，历史规格归档思源「07-历史规格归档」，不再新增 change
+
 ## 禁止事项
 
 - 禁止直接 push 到 `main`（pre-push 钩子会拦截；`--no-verify` 绕过需自担责任）
