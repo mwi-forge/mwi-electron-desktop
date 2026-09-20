@@ -54,6 +54,15 @@ contextBridge.exposeInMainWorld('api', {
     listRunning:   ()          => ipcRenderer.invoke('views:listRunning'),
     getFocusedId:  ()          => ipcRenderer.invoke('views:getFocusedId'),
     getState:      (id)        => ipcRenderer.invoke('views:getState', id),
+    getFocusedUrl: ()          => ipcRenderer.invoke('views:getFocusedUrl'),
+    // === idle auto-stop 配置（per openspec/changes/idle-auto-stop）===
+    getIdleConfig: ()          => ipcRenderer.invoke('views:getIdleConfig'),
+    setIdleConfig: (payload)   => ipcRenderer.invoke('views:setIdleConfig', payload),
+    onUrlChanged: (cb) => {
+      const h = (_e, data) => cb(data);
+      ipcRenderer.on('view:url-changed', h);
+      return () => ipcRenderer.removeListener('view:url-changed', h);
+    },
     onStateChanged: (cb) => {
       const h = (_e, data) => cb(data);
       ipcRenderer.on('account:state-changed', h);
@@ -64,6 +73,15 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on('view:focus-changed', h);
       return () => ipcRenderer.removeListener('view:focus-changed', h);
     },
+    // 倒计时 broadcast：mainWindow.webContents.send('idle:countdown', { items, ts })
+    onIdleCountdown: (cb) => {
+      const h = (_e, data) => cb(data);
+      ipcRenderer.on('idle:countdown', h);
+      return () => ipcRenderer.removeListener('idle:countdown', h);
+    },
+  },
+  idle: {
+    // 占位 namespace，未来扩展（getCurrentCountdown 等）
   },
   // === 应用元信息 + Phase 5 安全代理密码解密 ===
   meta: {

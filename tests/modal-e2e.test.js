@@ -1,9 +1,7 @@
 // tests/modal-e2e.test.js — 端到端验证 modal.js 修复（finish 作用域 + 队列 + 键盘）
+// 渲染层 ESM 化后改为：globalThis mock + 动态 import + initModal()（替代 vm runInContext）
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 
 // ============ 最小 DOM mock（递归子节点查找）============
 function makeElement(tag) {
@@ -47,21 +45,33 @@ const documentMock = {
   },
 };
 const windowMock = {
-  api: { dialog: {
-   _onShowCb: null,
-   onShow(cb) { this._onShowCb = cb; return () => { this._onShowCb = null; }; },
-   reply(id, idx) { windowMock._lastReply = { id, idx }; },
-  } },
+  api: {
+   dialog: {
+     _onShowCb: null,
+     onShow(cb) { this._onShowCb = cb; return () => { this._onShowCb = null; }; },
+     reply(id, idx) { windowMock._lastReply = { id, idx }; },
+   },
+   // api.canvas 桩：默认 resolve(false)，可注入挂起的 hideFocused 以复现「渲染中」竞态
+   canvas: {
+     hideFocused() { return windowMock._canvasHide ? windowMock._canvasHide() : Promise.resolve(false); },
+     resumeFocused() { return Promise.resolve(true); },
+   },
+  },
   _lastReply: null,
+  _canvasHide: null,
 };
 
-// 跑 modal.js（vm 共享引用）
-const modalSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'modal.js'), 'utf8');
-const ctx = vm.createContext({ window: windowMock, document: documentMock, console, setTimeout, setImmediate, Date });
-vm.runInContext(modalSrc, ctx);
-
-const mwiAlert = windowMock.mwiAlert;
-assert.ok(mwiAlert && mwiAlert.alert && mwiAlert.confirm, 'window.mwiAlert 未暴露');
+// 挂 globalThis 后动态 import ESM（modal.js 运行时解析 document/window），再显式 init 注册 onShow
+let cached = null;
+async function setup() {
+  if (cached) return cached;
+  globalThis.document = documentMock;
+  globalThis.window = windowMock;
+  const m = await import('../src/js/modal.js');
+  m.initModal();
+  cached = m;
+  return cached;
+}
 
 // ============ helpers ============
 function getAllButtons() {
@@ -89,6 +99,7 @@ function getTitles() {
 // ============ 测试 ============
 
 test('1. ★ alert 渲染 + 点击按钮 resolve 0（不再 ReferenceError）', async () => {
+  const { mwiAlert } = await setup();
   const promise = mwiAlert.alert({ type: 'error', title: '代理启动失败', message: 'mihomo_binary_not_found' });
   await new Promise(r => setImmediate(r));
   const buttons = getAllButtons();
@@ -100,6 +111,7 @@ test('1. ★ alert 渲染 + 点击按钮 resolve 0（不再 ReferenceError）', 
 });
 
 test('2. confirm 双按钮 + 点确定 resolve true', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.confirm({ message: '确认删除?' });
   await new Promise(r => setImmediate(r));
   const buttons = getAllButtons();
@@ -111,6 +123,7 @@ test('2. confirm 双按钮 + 点确定 resolve true', async () => {
 });
 
 test('3. confirm 点取消 resolve false', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.confirm({ message: '是否继续?' });
   await new Promise(r => setImmediate(r));
   getAllButtons()[0].dispatch('click', {});
@@ -118,6 +131,7 @@ test('3. confirm 点取消 resolve false', async () => {
 });
 
 test('4. Enter 键 = defaultId（confirm 时 = 确定）', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.confirm({ message: 'Enter 测试' });
   await new Promise(r => setImmediate(r));
   documentMock._dispatchKey('Enter');
@@ -125,6 +139,7 @@ test('4. Enter 键 = defaultId（confirm 时 = 确定）', async () => {
 });
 
 test('5. Esc 键 = cancelId（confirm 时 = 取消）', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.confirm({ message: 'Esc 测试' });
   await new Promise(r => setImmediate(r));
   documentMock._dispatchKey('Escape');
@@ -132,6 +147,7 @@ test('5. Esc 键 = cancelId（confirm 时 = 取消）', async () => {
 });
 
 test('6. Esc 在 alert 单按钮时 = defaultId', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.alert({ title: 'Esc 单按钮', message: 'X' });
   await new Promise(r => setImmediate(r));
   documentMock._dispatchKey('Escape');
@@ -139,6 +155,7 @@ test('6. Esc 在 alert 单按钮时 = defaultId', async () => {
 });
 
 test('7. 主进程 IPC 推送 → 渲染 → api.dialog.reply 回执', async () => {
+  const { mwiAlert } = await setup();
   windowMock._lastReply = null;
   const cb = windowMock.api.dialog._onShowCb;
   assert.ok(cb, 'modal.js 应该注册 api.dialog.onShow');
@@ -152,6 +169,7 @@ test('7. 主进程 IPC 推送 → 渲染 → api.dialog.reply 回执', async () 
 });
 
 test('8. 队列串行（两个 alert 不叠加）', async () => {
+  const { mwiAlert } = await setup();
   const p1 = mwiAlert.alert({ title: '第一个', message: 'A' });
   const p2 = mwiAlert.alert({ title: '第二个', message: 'B' });
   await new Promise(r => setImmediate(r));
@@ -168,6 +186,7 @@ test('8. 队列串行（两个 alert 不叠加）', async () => {
 });
 
 test('9. detail 多行 + 自定义 title 完整渲染', async () => {
+  const { mwiAlert } = await setup();
   const p = mwiAlert.alert({
     type: 'warn',
     title: '多行详情测试',
@@ -190,6 +209,7 @@ test('9. detail 多行 + 自定义 title 完整渲染', async () => {
 });
 
 test('10. body scroll lock + cleanup（弹窗关闭后 body overflow 还原）', async () => {
+  const { mwiAlert } = await setup();
   documentMock.body.style.overflow = 'auto'; // 初始
   const p = mwiAlert.alert({ title: 'Lock 测试', message: 'X' });
   await new Promise(r => setImmediate(r));
@@ -197,4 +217,32 @@ test('10. body scroll lock + cleanup（弹窗关闭后 body overflow 还原）',
   getAllButtons()[0].dispatch('click', {});
   await p;
   assert.equal(documentMock.body.style.overflow, 'auto', '关闭后应还原');
+});
+
+test('11. 渲染中二次 alert 不叠加（hideFocused pending 时）', async () => {
+  const { mwiAlert } = await setup();
+  // 复现真实竞态：renderDialog 停在 await hideFocused（rendering=true、currentEl 未置位），
+  // 此时再次 alert 不应并发渲染（否则两个轮回叠在一起）。
+  let resolveHide;
+  windowMock._canvasHide = () => new Promise(res => { resolveHide = res; });
+  const p1 = mwiAlert.alert({ title: '渲染中一', message: 'A' });
+  const p2 = mwiAlert.alert({ title: '渲染中二', message: 'B' });
+  // hideFocused 未 resolve 前，不应渲染任何弹窗
+  assert.equal(getTitles().length, 0, 'hideFocused 未完成前不应渲染弹窗');
+  // 释放 hideFocused → p1 渲染；随后恢复默认桩（hideFocused resolve(false)），让 p2 能正常渲染
+  resolveHide(false);
+  windowMock._canvasHide = null;
+  await new Promise(r => setImmediate(r));
+  let titles = getTitles();
+  assert.ok(titles.includes('渲染中一'), 'p1 应渲染');
+  assert.ok(!titles.includes('渲染中二'), 'p2 不应叠加渲染');
+  // 关闭 p1 → p2 串行渲染
+  getAllButtons()[0].dispatch('click', {});
+  await p1;
+  await new Promise(r => setImmediate(r));
+  titles = getTitles();
+  assert.ok(titles.includes('渲染中二'), '关闭 p1 后 p2 应渲染');
+  getAllButtons()[0].dispatch('click', {});
+  await p2;
+  windowMock._canvasHide = null;
 });

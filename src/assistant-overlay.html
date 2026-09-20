@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MWI Assistant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent;
+    pointer-events: none;
+  }
+  .mascot-area {
+    position: absolute;
+    right: 0; bottom: 0;
+    width: 60px; height: 40px;
+    pointer-events: auto;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  .mascot-area:active { cursor: grabbing; }
+
+  .ch-body {
+    fill: #2d2e44;
+    stroke: #98a7e9;
+    stroke-width: 0.5;
+    transition: fill 0.15s, stroke 0.15s;
+  }
+  .mascot-area:hover .ch-body {
+    fill: #39415a;
+    stroke: #b3c0f5;
+  }
+  .ch-eyes { animation: mwi-eye-look 16s ease-in-out infinite; }
+  .ch-eye {
+    fill: #d4d4d4;
+    transition: fill 0.15s;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: mwi-eye-blink 11s ease-in-out infinite;
+  }
+  .mascot-area:hover .ch-eye { fill: #fff; }
+
+  @keyframes mwi-eye-look {
+    0%, 42% { transform: translate(0); }
+    47%, 53% { transform: translate(2px); }
+    58%, 80% { transform: translate(0); }
+    84%, 90% { transform: translate(-2px); }
+    95%, 100% { transform: translate(0); }
+  }
+  @keyframes mwi-eye-blink {
+    0%, 94%, 100% { transform: scaleY(1); }
+    96.5%, 98% { transform: scaleY(0.12); }
+  }
+  @keyframes mwi-eye-blink-once {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ch-eyes, .ch-eye { animation: none; }
+  }
+
+  .expand-panel {
+    display: none;
+    position: absolute;
+    left: 0; top: 0;
+    width: 300px;
+    height: 400px;
+    background: rgba(15, 15, 15, 0.95);
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    pointer-events: auto;
+  }
+  .expanded .expand-panel { display: flex; flex-direction: column; }
+  .expanded .mascot-area { right: auto; left: 300px; }
+</style>
+</head>
+<body>
+  <div class="mascot-area" id="mascotArea">
+    <svg width="60" height="40" viewBox="0 0 32 22" fill="none"
+         role="img" aria-label="MWI 吉祥物">
+      <rect class="ch-body" x="1" y="1" width="30" height="20" rx="6"/>
+      <g class="ch-eyes">
+        <rect class="ch-eye" x="11.8" y="7" width="2.8" height="8" rx="1.4"/>
+        <rect class="ch-eye" x="17.4" y="7" width="2.8" height="8" rx="1.4"/>
+      </g>
+    </svg>
+  </div>
+  <div class="expand-panel" id="expandPanel">
+    <!-- 预留：NL 输入面板 / 状态反馈 / 方案一对接 -->
+  </div>
+<script>
+(function () {
+  var area = document.getElementById('mascotArea');
+  if (!area) return;
+
+  var isDragging = false;
+  var dragStartX = 0, dragStartY = 0;
+  var hasMoved = false;
+  var clickTimer = null;
+  var CLICK_DEBOUNCE = 300; // ms
+  var DRAG_THRESHOLD = 5;   // px
+
+  function clearClickTimer() {
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+  }
+
+  area.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    isDragging = true;
+    hasMoved = false;
+    dragStartX = e.screenX;
+    dragStartY = e.screenY;
+    area.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  area.addEventListener('pointermove', function (e) {
+    if (!isDragging) return;
+    var dx = e.screenX - dragStartX;
+    var dy = e.screenY - dragStartY;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+      hasMoved = true;
+      try {
+        window.overlayAPI.onMoveTo(window.screenX + dx, window.screenY + dy);
+        dragStartX = e.screenX;
+        dragStartY = e.screenY;
+      } catch (er) { /* ignore */ }
+    }
+    e.preventDefault();
+  });
+
+  area.addEventListener('pointerup', function (e) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    if (!hasMoved) {
+      // 单击：区分单击 vs 双击
+      if (clickTimer) {
+        // 第二次点击（<=300ms）→ 双击：重置位置
+        clearClickTimer();
+        try { window.overlayAPI.onResetPosition(); } catch (er) { /* ignore */ }
+      } else {
+        // 第一次点击：等 300ms 确认不是双击
+        clickTimer = setTimeout(function () {
+          clickTimer = null;
+          try { window.overlayAPI.onActivateMain(); } catch (er) { /* ignore */ }
+        }, CLICK_DEBOUNCE);
+      }
+    }
+  });
+
+  // 清理定时器（防止 close 后残留）
+  area.addEventListener('pointercancel', function () {
+    isDragging = false;
+  });
+})();
+</script>
+</body>
+</html>

@@ -162,6 +162,32 @@ body {
   background: var(--mwi-bg-hover);
 }
 
+/* 全局批量启停按钮（全部启动 / 全部停止） */
+#btn-start-all {
+  color: var(--mwi-accent-strong);
+}
+#btn-start-all:hover {
+  background: var(--mwi-accent-soft);
+  color: #C7D4FF;
+}
+#btn-stop-all {
+  color: var(--mwi-status-error);
+}
+#btn-stop-all:hover {
+  background: rgba(248, 113, 113, 0.13);
+  color: #FCA5A5;
+}
+/* 禁用态：覆盖 ID 级 hover，保持统一的禁用视觉（ opacity 由 .btn[disabled] 提供） */
+#btn-start-all[disabled], #btn-stop-all[disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+#btn-start-all[disabled]:hover, #btn-stop-all[disabled]:hover {
+  background: transparent;
+  color: var(--mwi-text-secondary);
+  transform: none;
+}
+
 /* ==========================================================================
    主体三栏
    ========================================================================== */
