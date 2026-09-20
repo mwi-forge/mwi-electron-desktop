@@ -1,25 +1,26 @@
 {
   "name": "mwi-electron-desktop",
   "version": "0.1.4",
-  "description": "Electron 桌面端多账号浏览器：在同一台电脑同时登录多个网页游戏账号，账号环境完全隔离，支持油猴脚本扩展，资源占用低且具备反关联能力",
+  "description": "Electron Desktop Multi-Account Browser: simultaneously log in to multiple web game accounts on the same computer, with completely isolated account environments, Tampermonkey script extension support, low resource consumption, and anti-association capabilities.",
   "main": "main.js",
   "scripts": {
-    "start": "node scripts/build-icon-assets.mjs && electron .",
-    "dev": "node scripts/build-icon-assets.mjs && MWI_DEV=1 electron .",
-    "test": "node --test \"tests/**/*.test.js\" \"tests/**/*.test.mjs\"",
+    "start": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron .",
+    "dev": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && MWI_DEV=1 electron .",
+    "test": "node --test \"tests/**/*.test.js\" \"tests/**/*.test.mjs\" \"lib/__tests__/**/*.test.js\"",
     "test:modal": "node --test tests/modal-e2e.test.js",
+    "test:lib": "node --test \"lib/__tests__/**/*.test.js\"",
+    "test:e2e:lib": "electron lib/__tests__/clipboard-bridge.e2e.js && electron lib/__tests__/scrollbar-hide.e2e.js",
     "test:electron": "node tests/integration-electron.js show && node tests/integration-electron.js click && node tests/integration-electron.js esc",
     "test:tm-bg": "electron tests/tampermonkey-bg.e2e.js",
     "bump": "npm version --no-git-tag-version",
     "build:icons": "node scripts/build-icon-assets.mjs",
-    "prebuild": "node scripts/build-icon-assets.mjs",
-    "prepack": "node scripts/build-icon-assets.mjs",
+    "prepack": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs",
     "pretest": "node scripts/build-icon-assets.mjs",
-    "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux",
-    "dist:dir": "electron-builder --dir"
+    "dist": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder",
+    "dist:mac": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --mac",
+    "dist:win": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --win",
+    "dist:linux": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --linux",
+    "dist:dir": "node scripts/build-icon-assets.mjs && node scripts/fetch-mihomo.mjs && electron-builder --dir"
   },
   "keywords": [
     "electron",
@@ -29,11 +30,14 @@
     "tampermonkey"
   ],
   "author": {
-    "name": "shenhuanjie",
-    "email": "shenhuanjie@users.noreply.github.com"
+    "name": "KUN"
   },
-  "homepage": "https://cnb.cool/shenhuanjie/mwi-miuoooooo/mwi-electron-desktop",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shenhuanjie/mwi-electron-desktop.git"
+  },
+  "homepage": "https://github.com/shenhuanjie/mwi-electron-desktop",
   "devDependencies": {
     "c8": "^12.0.0",
     "electron": "^43.4.0",
@@ -42,6 +46,11 @@
   "dependencies": {
     "electron-store": "^8.2.0",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "^0.8.15",
+    "js-yaml": "^4.3.2",
+    "fast-uri": "^3.1.6"
   },
   "build": {
     "appId": "com.mwi.desktop",

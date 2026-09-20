@@ -9,11 +9,10 @@
 //
 // 用法：
 //   const el = document.querySelector("select#groupId");
-//   window.mwiCustomSelect.replace(el);
+//   customSelect.replace(el);
 //   form submit: document.querySelector("input[name=groupId]").value
 
-(function () {
-  var BQ = String.fromCharCode(96);
+var BQ = String.fromCharCode(96);
   var AMP = String.fromCharCode(38);
   var LT = String.fromCharCode(60);
   var GT = String.fromCharCode(62);
@@ -263,5 +262,4 @@
     return api;
   }
 
-  window.mwiCustomSelect = { replace: replace };
-})();
+export const customSelect = { replace: replace };

@@ -54,7 +54,9 @@ function changedLinesByFile(base, head) {
 function findCoverageEntry(coverage, file) {
   const suffix = `/${file}`;
   for (const key of Object.keys(coverage)) {
-    if (key === file || key.endsWith(suffix)) return coverage[key];
+    // c8 在 Windows 上的报告键是反斜杠绝对路径，归一化后再比对
+    const normKey = key.split('\\').join('/');
+    if (normKey === file || normKey.endsWith(suffix)) return coverage[key];
   }
   return null;
 }

@@ -23,6 +23,34 @@ Thumbs.db
 userData/
 Partitions/
 
+# mihomo 二进制不入库：dev/打包前经 scripts/fetch-mihomo.mjs 从 GitHub Releases 拉取
+resources/mihomo/
+
+# 遗留的用户数据文件（历史误提交；运行时数据实际存于 userData/）
+Manager/
+
+# 统一使用 package-lock.json（npm ci），pnpm 锁文件不入库
+pnpm-lock.yaml
+
+# Python 编译缓存
+__pycache__/
+
+# 临时调试产物
+*.bak
+*.bak.*
+.tmp/
+.tmp-*
+tmp_*
+.probe.js
+
+# DSH 工具 / 开发环境缓存（不属于项目内容）
+.agents/
+.agent-teams/
+.dsh-vision-toolkit/
+.npm-cache/
+.playwright-browsers/
+.distwin.pid
+
 # 调试产物（截图/状态 dump）
 tests/screenshots/
 tests/view-dump.json

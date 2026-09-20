@@ -86,7 +86,7 @@ function shouldRegenerate() {
   return srcMtime > outMtime;
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(LOGO_SRC)) {
     console.error('[build-icon-assets] FAIL: 源图不存在 ' + LOGO_SRC);
     process.exit(1);
@@ -94,20 +94,23 @@ function main() {
 
   ensureBuildDir();
 
-  if (!shouldRegenerate()) {
+  if (shouldRegenerate()) {
+    const png = fs.readFileSync(LOGO_SRC);
+    const ico = buildIcoFromPng(png);
+    fs.writeFileSync(ICO_OUT, ico);
+
+    console.log('[build-icon-assets] 生成 ' + path.relative(ROOT, ICO_OUT));
+    console.log('  源图:  ' + path.relative(ROOT, LOGO_SRC) + ' (' + png.length + ' bytes)');
+    console.log('  产物:  icon.ico (' + ico.length + ' bytes, PNG-in-ICO Vista+)');
+    console.log('  注意:  macOS ICNS 未生成；如需正式 macOS 图标，请运行');
+    console.log('         python3 scripts/build-brand-assets.py （需要源图 cow/milk PNG）');
+  } else {
     console.log('[build-icon-assets] 跳过（build/icon.ico 已存在且比 logo.png 新）');
-    return;
   }
 
-  const png = fs.readFileSync(LOGO_SRC);
-  const ico = buildIcoFromPng(png);
-  fs.writeFileSync(ICO_OUT, ico);
-
-  console.log('[build-icon-assets] 生成 ' + path.relative(ROOT, ICO_OUT));
-  console.log('  源图:  ' + path.relative(ROOT, LOGO_SRC) + ' (' + png.length + ' bytes)');
-  console.log('  产物:  icon.ico (' + ico.length + ' bytes, PNG-in-ICO Vista+)');
-  console.log('  注意:  macOS ICNS 未生成；如需正式 macOS 图标，请运行');
-  console.log('         python3 scripts/build-brand-assets.py （需要源图 cow/milk PNG）');
+  // tokens 同步无条件执行：icon 幂等跳过不代表 tokens.css 已与 layout-metrics 一致
+  await import('./layout-tokens.mjs');
 }
 
 main();
+

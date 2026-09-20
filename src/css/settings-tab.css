@@ -94,3 +94,96 @@
   width: 100%;
   max-width: 360px;
 }
+
+/* === idle auto-stop fieldset 样式（per openspec/changes/idle-auto-stop）===
+   toggle row + number input + hint；与 locale fieldset 同模式但布局更紧凑。 */
+.settings-tab__idle-fieldset {
+  margin-top: 14px;
+  border-top: 1px dashed var(--mwi-border-subtle);
+  padding-top: 14px;
+}
+
+/* toggle + minutes 在同一行紧凑排版（per user 反馈：应该很紧凑） */
+.settings-tab__idle-input-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.settings-tab__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  /* override .account-form-card__form label flex-direction: column（更高优先级用 !important） */
+  flex-direction: row !important;
+}
+
+.settings-tab__toggle-row {
+  cursor: pointer;
+  user-select: none;
+}
+.settings-tab__toggle-row input[type="checkbox"] {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--mwi-accent);
+  cursor: pointer;
+}
+.settings-tab__toggle-row > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mwi-text-primary);
+}
+
+.settings-tab__minutes-row {
+  margin-left: 0;
+}
+.settings-tab__minutes-row input[type="number"] {
+  width: 64px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--mwi-border-subtle);
+  border-radius: 6px;
+  background: var(--mwi-bg-inset);
+  color: var(--mwi-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: right;
+  flex: 0 0 auto;
+}
+.settings-tab__minutes-row input[type="number"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.settings-tab__minutes-row input[type="number"]:focus {
+  outline: none;
+  border-color: var(--mwi-accent);
+  box-shadow: 0 0 0 3px var(--mwi-accent-soft);
+}
+/* range slider 快捷调整（与 number 输入双向联动） */
+.settings-tab__minutes-row input[type="range"] {
+  width: 160px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--mwi-text-primary);
+  accent-color: var(--mwi-accent);
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-width: 100px;
+}
+.settings-tab__minutes-row input[type="range"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.settings-tab__minutes-row input[type="range"]:focus {
+  outline: none;
+}
+.settings-tab__minutes-suffix {
+  font-size: 11px;
+  color: var(--mwi-text-muted);
+}
