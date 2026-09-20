@@ -93,6 +93,10 @@ async function showNodes(subId) {
     ].join('');
   }).join('');
   host.innerHTML = html;
+  // 新渲染的节点行不经过 refreshList 的 bindActions（fix #42：此前 measure-one 按钮从未绑定）；
+  // 只补绑 measure-one，避免对已绑定的卡片按钮叠加监听器
+  var root = document.getElementById('subs-root');
+  if (root) root.querySelectorAll("[data-action='measure-one']").forEach(bindMeasureOneBtn);
 }
 
 function bindActions() {
@@ -149,16 +153,19 @@ function bindActions() {
     });
   });
 
-  q("[data-action='measure-one']", function (btn) {
-    btn.addEventListener('click', async function () {
-      var subId = btn.dataset.subId, nodeId = btn.dataset.nodeId;
-      btn.disabled = true; btn.textContent = t('subscription.tab.btn.measuring_one');
-      try {
-        var r = await window.api.subscriptions.measureNode(subId, nodeId);
-        if (r.ok) await showNodes(subId);
-      } catch (e) { mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.measure_one_fail', { message: e.message }) }); }
-      finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.measure_one'); }
-    });
+  q("[data-action='measure-one']", bindMeasureOneBtn);
+}
+
+// 节点行「测速」按钮绑定体：refreshList 后的 bindActions 与 showNodes 渲染后补绑共用（#42）
+function bindMeasureOneBtn(btn) {
+  btn.addEventListener('click', async function () {
+    var subId = btn.dataset.subId, nodeId = btn.dataset.nodeId;
+    btn.disabled = true; btn.textContent = t('subscription.tab.btn.measuring_one');
+    try {
+      var r = await window.api.subscriptions.measureNode(subId, nodeId);
+      if (r.ok) await showNodes(subId);
+    } catch (e) { mwiAlert.alert({ type: 'error', message: t('subscription.tab.alert.measure_one_fail', { message: e.message }) }); }
+    finally { btn.disabled = false; btn.textContent = t('subscription.tab.btn.measure_one'); }
   });
 }
 
