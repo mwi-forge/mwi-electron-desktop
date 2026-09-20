@@ -1,0 +1,2 @@
+# Windows 检出时 hook 脚本必须保持 LF，否则 sh 会因 \r 报错
+.githooks/** text eol=lf
