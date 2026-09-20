@@ -1,5 +1,7 @@
 # 交接文档：fingerprint spoof → snapshot-based 架构级重构
 
+> **历史文档说明（2026-09-20）**：本文写作时仓库使用 openspec 规格驱动体系，文中提及的 openspec change 立项/排序均为当时上下文。openspec 已于 2026-09-20 退役，本文所涉 change（`fingerprint-snapshot-as-source-of-truth` 等）均已实现合入 main，原始方案文档归档于思源笔记项目夹「07-历史规格归档」，文中 openspec 相关表述仅作历史参考。
+
 > 源会话：`session-6ebb8183-db44-45cb-b72a-5efb478e4aec`（「数据合理性检查」）
 > 接手会话：`session-d9a13a4d-c5ee-4412-8b5b-6d27d18f7892`（DeepSeek Pro）
 > 重建说明：原会话声称已把完整 markdown 写入此文件，但接手核对时该文件在项目工作目录不存在（glob 0 命中）。本文件由接手会话于 2026-08-21 依据聊天速览版重建，并追加「接手核对结论」一节，以重建版为准。
