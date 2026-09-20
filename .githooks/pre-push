@@ -1,0 +1,16 @@
+#!/bin/sh
+# 直推 main 防线：main 只接受 PR 合入（GitHub Flow 单主干，见 docs/git-workflow.md）。
+# 启用（每个 clone 一次）：git config core.hooksPath .githooks
+# 绕过：git push --no-verify ...（显式意图，视为明知违规并自行负责）
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo "" >&2
+      echo "✗ 禁止直推 main：请推送任务分支并通过 PR 合入（如 chore/xxx -> main）。" >&2
+      echo "  如确需绕过（如仓库初始化），使用 git push --no-verify。" >&2
+      exit 1
+      ;;
+  esac
+done
+exit 0
