@@ -186,7 +186,7 @@ test('关键可见 key en-US 实际翻译过（非中文残留）', () => {
 
 test('占位符 key 在 z/en 中 schema 一致', () => {
   // 扫所有 key，正则查 {name} 类占位符，zh-en 占位符必须同名同位
-  const re = /{(w+)}/g;
+  const re = /{(\w+)}/g;
   for (const k of Object.keys(ZH)) {
     const zSet = new Set();
     const eSet = new Set();
@@ -197,6 +197,16 @@ test('占位符 key 在 z/en 中 schema 一致', () => {
     re.lastIndex = 0;
     assert.deepStrictEqual([...zSet].sort(), [...eSet].sort(), 'placeholder mismatch: ' + k);
   }
+});
+
+test('占位符提取哨兵：正则必须真实命中 {n}（防退化回空转）', () => {
+  // 回归：正则曾误写为 /{(w+)}/g（缺 \w 转义），对真实占位符永不命中，
+  // 上一条 schema 一致性测试因此左右集合恒空、空转通过。此哨兵锁定提取非空。
+  const re = /{(\w+)}/g;
+  const found = [];
+  let m;
+  while ((m = re.exec(ZH['statusbar.label.mem_mb'])) !== null) found.push(m[1]);
+  assert.ok(found.includes('n'), '应从「内存 {n} MB」提取出占位符 n，否则正则已退化');
 });
 
 test('集成：i18n.js 在带 locale 表的 mock 里 t() 返回预期值（zh 走 zh，en 走 en）', async () => {
