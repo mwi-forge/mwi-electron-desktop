@@ -4,11 +4,12 @@
 
 ## 功能特性
 
-- 多账号同时在线：每个账号对应一个独立窗口，各自使用独立的 session 分区，Cookies / Local Storage / IndexedDB / 缓存完全隔离
+- 多账号同时在线：每个账号一个内嵌视图（WebContentsView），各自使用独立的 session 分区，Cookies / Local Storage / IndexedDB / 缓存完全隔离
 - 油猴脚本支持：基于 Chromium 直接加载 Tampermonkey 扩展，每个分区单独加载，脚本数据互不影响
-- 资源优化：默认手机分辨率窗口（360x640）、默认启用 GPU（反检测需要），可用 MWI_HW_ACCEL=0 环境变量回退禁用（省电模式）、限制渲染进程数、按需限制 V8 堆
+- 资源优化：默认 1280x800 桌面窗口（最小 960x600）、默认启用 GPU（反检测需要），可用 MWI_HW_ACCEL=0 环境变量回退禁用（省电模式）、限制渲染进程数、按需限制 V8 堆
 - 反关联能力：支持为每个账号设置独立代理（SOCKS5 / HTTP）；每账号由 accountId 派生稳定 seed 生成自洽指纹画像，注入覆盖 User-Agent / navigator.userAgentData（含高熵值）/ languages / screen / 时区 / 硬件并发数 / 设备内存 / WebGL renderer（伪 GPU）/ Canvas 2D 像素扰动，WebRTC 策略实际生效
 - 主控制台管理：账号列表展示、添加/删除/编辑、启动/停止、批量操作
+- 桌面助手小窗：独立透明置顶悬浮窗，支持拖拽换位 / 双击归位 / 位置记忆 / 单击唤回主窗口，为后续自然语言助手预留 UI 底座
 
 ## 技术选型
 
@@ -24,7 +25,7 @@
 - 单实例应用：启动后展示主控制台窗口（**单窗口 + WebContentsView 嵌入**）
 - 多账号视图：每个账号对应一个 WebContentsView，嵌入主窗口中部，通过 tab 栏切换（不是独立 BrowserWindow）
 - Session 分区：每个 view 使用独立 `session.fromPartition('persist:account_<ID>')`，Cookies / Local Storage / IndexedDB / 缓存完全隔离
-- 主进程与渲染进程隔离：禁用 nodeIntegration，启用 contextIsolation，主窗口与账号视图间通信走 IPC 并严格校验消息来源
+- 主进程与渲染进程隔离：禁用 nodeIntegration，启用 contextIsolation，IPC 通道经 preload 静态白名单枚举暴露（无动态通配注册）
 
 ### 账号隔离
 
@@ -59,6 +60,8 @@ npm run dist:dir          # 仅打包成目录（快速验证，不生成安装�
 mwi-electron-desktop/
 ├── main.js                       # 主进程入口
 ├── preload.js                    # 预加载（contextBridge 暴露 window.api）
+├── preload-overlay.js            # 助手窗口预加载（暴露 window.overlayAPI）
+├── fp-preload.js                 # 账号视图指纹注入 preload
 ├── lib/                          # 主进程模块
 │   ├── accounts.js               # 账号数据层（CRUD + 持久化 + 代理密码自动加密）
 │   ├── subscriptions.js          # Clash 订阅管理（CRUD + 自动刷新 + 节点敏感字段加密）
@@ -77,9 +80,12 @@ mwi-electron-desktop/
 │   ├── logs.js                   # 日志环形缓冲
 │   ├── metrics.js                # app.getAppMetrics 聚合 + 推流
 │   ├── ipc.js                    # IPC handlers 注册
+│   ├── selftest.js               # 自检 / 测试钩子注册表（MWI_SELFTEST_*，生产路径零行为）
+│   ├── layout-metrics.js         # 布局尺寸单一事实源（自动同步 src/css/tokens.css）
 │   └── __tests__/                # 主进程模块单元测试（node --test）
 ├── src/                          # 渲染进程
 │   ├── index.html                # 主控制台 5 栏 DOM
+│   ├── assistant-overlay.html    # 助手小窗页面（透明置顶）
 │   ├── css/                      # DSH 深色配色 token + 5 栏布局
 │   └── js/                       # store + sidebar + tabbar + panel + statusbar + app 等
 ├── resources/
@@ -103,7 +109,7 @@ mwi-electron-desktop/
 
 ## 安全说明
 
-- 主窗口与账号视图之间通信使用 IPC，严格校验消息来源
+- 主窗口与账号视图之间通信使用 IPC，通道经 preload 静态白名单枚举暴露，渲染进程无法调用未注册通道
 - 禁用 nodeIntegration，启用 contextIsolation，防止游戏页面访问 Node.js 环境
 - 代理密码等敏感信息使用 Electron `safeStorage` API 加密存储（明文不入库，仅在主进程短暂存在）
 - WebContentsView 使用独立 session partition，账号间 cookies/storage/IndexedDB 完全隔离
