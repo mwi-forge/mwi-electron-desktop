@@ -1,19 +1,34 @@
 # 分支与发布规范
 
-适用于 `github.com/shenhuanjie/mwi-electron-desktop` 仓库的 Git Flow 子集。
+适用于 `github.com/shenhuanjie/mwi-electron-desktop`。
+
+> **2026-09-20 起收敛为 GitHub Flow 单主干模式**：`main` 是唯一长期分支，`develop` 及历史分支已删除（收敛过程见 PR #13 / #14）。本文档已按单主干重写。
 
 ## 分支模型
 
-| 分支 | 角色 | 来源 | 合并到 | 是否受保护 | CI 触发 |
+| 分支 | 角色 | 来源 | 合并到 | 保护 | CI |
 |---|---|---|---|---|---|
-| `main` | 稳定发布，每个 commit 对应一个 release | 仅接受 hotfix/feature/fix 的 PR merge | 不主动写 | 是：必 PR + 必 review + 必 status check + 线性历史 | 触发：构建 + 上传 release artifact |
-| `develop` | 集成开发分支，常驻 | 唯一入口：feature/fix PR | 不主动写 | 是：必 PR + 必 review + status check | 触发：构建（不打 release artifact） |
-| `feature/<scope>` | 单功能开发分支 | 从 `develop` | merge 回 `develop` | 否（开发分支） | 触发：构建（验证，不出 release） |
-| `fix/<scope>` | 普通缺陷修复 | 从 `develop` | merge 回 `develop` | 否 | 是 |
-| `hotfix/<scope>` | 紧急修复线上版本 | 从 `main` | 同时 merge 回 `main` 和 `develop` | 否 | 触发：构建 + 主分支打 patch release |
-| `release/<v<>>` | 发布准备（版本号锁定 + changelog 收尾） | 从 `develop` | merge 回 `main`（打 tag）+ `develop`（同步后续） | 否 | 触发：完整构建（Linux + 手动 macOS/Windows） |
+| `main` | 唯一长期分支，稳定发布线 | 仅接受 PR merge | — | 暂为三层约定防线（见「直推防线」） | push 触发 pr-check；release 合并触发发布 |
+| `feat/<scope>` | 新功能 | 从 `main` | PR → `main` | 否 | PR 触发 pr-check |
+| `fix/<scope>` | 缺陷修复 | 从 `main` | PR → `main` | 否 | 同上 |
+| `chore/<scope>` | 工程 / 文档 / CI / 依赖 | 从 `main` | PR → `main` | 否 | 同上 |
+| `hotfix/<scope>` | 紧急修复线上问题 | 从 `main` | PR → `main` | 否 | 同上，合并后按 PATCH+1 走发布流程 |
 
-`<scope>` 用 kebab-case 英文短语（不用中文），如 `feature/canvas-tab-drag`、`hotfix/mihomo-decode-error`。
+`<scope>` 用 kebab-case 英文短语（不用中文），如 `feat/canvas-tab-drag`、`fix/mihomo-decode-error`。
+
+## 直推防线（分支保护的当前替代）
+
+私有仓库 + 免费账户无法启用 GitHub 分支保护，当前以三层组合替代：
+
+1. **约定层**：本文件 + 仓库根 `CLAUDE.md`（对所有读仓库的 agent 生效）
+2. **本地硬防线**：`.githooks/pre-push` 拦截一切对 `main` 的直推。**每个 clone 执行一次启用**：
+   ```bash
+   git config core.hooksPath .githooks
+   ```
+   绕过需显式 `git push --no-verify`（视为明知违规）
+3. **事后检测层**：`main` 每次 push 都会跑 pr-check workflow，直推混入的提交无法通过门禁，红灯立现
+
+升级 GitHub Pro 或转公开仓库后，应启用真正的分支保护（见「GitHub 配置落地清单」）。
 
 ## commit message 规范（Conventional Commits）
 
@@ -44,7 +59,7 @@
 | `build` | 构建系统 / 依赖变更（npm / electron-builder 等） |
 | `ci` | CI 配置变更（GitHub Actions workflow） |
 | `chore` | 杂项（不影响构建/测试） |
-| `style` | 格式调整（不改逻辑）） |
+| `style` | 格式调整（不改逻辑） |
 | `revert` | 回滚 |
 
 BREAKING CHANGE 在 footer 单独一行 `BREAKING CHANGE: <说明>`。
@@ -57,84 +72,58 @@ BREAKING CHANGE 在 footer 单独一行 `BREAKING CHANGE: <说明>`。
 - `MINOR`：新功能（新增 tab 类型、新增 multi-account 模式等）
 - `PATCH`：bug 修复 / 依赖安全更新 / 文档 / 重构
 
-在 `main` 分支打 tag（GitHub Releases 创建 release + tag + 上传 artifact，由 release workflow 自动完成）。
+tag 与 GitHub Release 由 release workflow 自动创建，不手动打 tag。
 
-## 发布流程（4 端部署）
+## 发布流程
 
-1. `release/vX.Y.Z` 从 `develop` 切出，bump package.json 版本号，收尾 CHANGELOG，commit `chore(release): vX.Y.Z`
-2. PR：`release/vX.Y.Z` -> `main`，触发 pr-check 门禁；status check 必须通过
-3. PR merge 后自动触发 release workflow（GitHub Actions，matrix 三平台构建）：
-   - Linux AppImage / Windows nsis / macOS dmg+zip 统一上传到 `vX.Y.Z` GitHub Release
-   - latest*.yml 随 Release 附件发布，作为 electron-updater feed
-   - macOS 当前不签名不公证（签名/公证属阶段 2 投入）
-4. tag 由 release workflow 自动打在 merge commit 上
-
-## hotfix 流程
-
-1. 从 `main` 切 `hotfix/<scope>` 分支
-2. commit `fix(<scope>): <description>`
-3. PR -> `main`，必 review（最少 1 人）+ status check
-4. merge 后自动 patch version bump（`X.Y.(Z+1)`），release workflow 打新 tag + GitHub Release
-5. 同步 PR：把 `hotfix/<scope>` merge 回 `develop`（rebase 或 fast-forward）
+1. 从 `main` 切 `chore/release-vX.Y.Z` 分支，`npm run bump` 后手动改 package.json `version` 为 `X.Y.Z`，commit `chore(release): vX.Y.Z`
+2. PR → `main`，pr-check 必须绿
+3. merge 后 release workflow 自动识别（合并信息含 `chore(release): vX.Y.Z` 且与 package.json 版本一致且 tag 不存在）→ 三平台 matrix 构建 → 产物挂到 `vX.Y.Z` GitHub Release
+   - Linux AppImage / Windows nsis+portable / macOS dmg+zip（arm64+x64，当前不签名不公证）
+   - `latest*.yml` 随 Release 附件发布，作为 electron-updater feed（应用内自动更新客户端待接入）
+4. 也可在 Actions 手动 `workflow_dispatch` 指定版本号触发
 
 ## PR 规范
 
-- PR 标题 = squash commit message，遵循 Conventional Commits
+- PR 标题遵循 Conventional Commits
 - PR body 必须包含：
   - 改了什么（1-3 行）
   - 为什么这么改（动机）
-  - 验证方式（怎么测过：node:test / E2E / 手动）
+  - 验证方式（怎么测过：node:test / E2E / 手动）——**评审自测结论随 PR 提供**
   - 影响范围（哪些用户/模块感知）
-- PR 大小：单 PR 不超过 800 行 diff（含新增文件）
-- 必填 reviewer 至少 1 人；hotfix/release 至少 1 个仓库管理员
+- PR 大小：单 PR 不超过 800 行 diff（批次 / 迁移类除外，需在描述中说明）
+- 合并方式：小 PR 用 squash（保持线性）；批次 / 迁移类多提交 PR 可用 merge commit 保留链路（如 PR #13/#14）
 
 ## 禁止事项
 
-- 禁止直接 push 到 `main` / `develop`
-- 禁止 `git push --force` 到任何受保护分支
-- 禁止在 feature 分支混合多个不相关改动
-- 禁止 merge commit 信息写成 `merge branch 'xxx'`，用 squash
+- 禁止直接 push 到 `main`（pre-push 钩子会拦截；`--no-verify` 绕过需自担责任）
+- 禁止 `git push --force` 到 `main`
+- 禁止在任务分支混合多个不相关改动
 - 禁止 commit 信息带 emoji（与项目文档风格一致）
 
 ## GitHub 配置落地清单
 
-在仓库 Settings 中配置（需仓库管理员权限）：
+> 以下 1~3 需 **GitHub Pro**（私有仓库）或仓库转公开后方可启用；当前为约定 + 钩子替代。
 
-1. **main 分支保护**（Settings → Branches → Add branch ruleset，rule=`main`）：
-   - Require a pull request before merging（Required approvals = 1）
-   - Require status checks to pass（pr-check workflow 必过）
-   - Require linear history
-   - Block force pushes
+1. **main 分支保护**（Settings → Branches）：
+   - Require a pull request before merging
+   - Do not allow force pushes / deletions
+   - Require status checks to pass，勾选 CI 门禁 job
+   - **不设置** Require approvals（个人项目无第二评审人）
+   - 注意：status check 名称必须与 workflow job 显示名一致（启用前建议先把 pr-check 的 job 改名为 `mwi-ci` 对齐既有约定）
+2. **PR 合并设置**（Settings → General → Pull Requests）：允许 squash merge 与 merge commit
+3. **Actions 权限**（已配置）：Workflow permissions = Read and write（release 附件上传需要）
 
-2. **develop 分支保护**（rule=`develop`）：
-   - Require a pull request before merging（Required approvals = 1）
-   - Require status checks to pass
-   - Block force pushes
-   - **不强制** 线性历史（feature rebase 由开发者按需）
+## GitHub Actions 工作流
 
-3. **PR 合并设置**（Settings → General → Pull Requests）：
-   - Allow squash merging（默认 commit 信息 = PR 标题，符合 Conventional Commits）
-   - Allow rebase merging
-   - 关闭 Allow merge commits（强制 squash/rebase）
+CI 能力由 GitHub Actions 承接（CNB 的 `.cnb.yml` 已退役删除；实施见 ISSUE-251）：
 
-4. **Actions 权限**（Settings → Actions → General，已配置）：
-   - Actions permissions = Allow all actions
-   - Workflow permissions = Read and write（release 附件上传需要）
+- **pr-check workflow**：PR 及 main push 触发，install + 全量单测 + 覆盖率门禁。阈值 2026-09-20 按实测基线校准：全局行覆盖 ≥55%、PR 变更行覆盖 ≥58%（门禁上线时 main 无插桩数据、原 60/70 从未被检验；覆盖率回升后应逐步收紧回 60/70）
+- **release workflow**：见「发布流程」，detect job 三重校验（合并信息版本 = package.json 版本、tag 不存在），非发布提交约 10 秒跳过
 
-## GitHub Actions 工作流规划
+## 待办（按优先级）
 
-`.cnb.yml` 已随 CNB 旧仓库退役删除，CI 能力由 GitHub Actions 承接（实施见 ISSUE-251）：
-
-- **pr-check workflow**：PR 触发，install + unit-test + 覆盖率门禁（lines ≥ 60% / diffLines ≥ 70%），作为 main 分支保护的 status check。
-- **release workflow**：`release/vX.Y.Z` 合并 `main` 触发，matrix 三平台构建——linux(AppImage) / windows(nsis) / mac(dmg+zip，当前不签名)——产物统一挂到 GitHub Releases 对应 `vX.Y.Z` Release，latest*.yml 随附件发布。
-
-## 落地顺序（建议）
-
-1. **写本文档**（已完成）
-2. **配 PR 模板** `.github/PULL_REQUEST_TEMPLATE.md`（自动填充 PR body 模板）
-3. **配 commit template** `.gitmessage`（`git config commit.template .gitmessage`）
-4. **配 GitHub main 分支保护**（需仓库管理员在 Settings 操作，ISSUE-251 前置）
-5. **配 PR 合并设置**（同 4）
-6. **落地 GHA pr-check / release workflow**（ISSUE-251）
-7. **electron-updater feed 验证**（GitHub Releases 附件 URL 公开可 GET，ISSUE-251）
-8. **加 PR body lint**（可选，PR body 必须含验证方式）
+1. electron-updater 客户端接入（feed 服务端已就绪：latest*.yml 已随 Release 发布）
+2. pr-check 增加 `npm audit --audit-level=high` 依赖安全门禁
+3. pr-check 测试 job 增加 windows 平台矩阵（或每周定时跨平台测试）
+4. 启用 GitHub 分支保护（依赖 Pro / 公开；启用前先统一 job 名 `mwi-ci`）
