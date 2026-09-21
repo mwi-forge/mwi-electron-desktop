@@ -51,6 +51,11 @@ tmp_*
 .playwright-browsers/
 .distwin.pid
 
+# ZCode 插件本地工作目录（hook 会话状态 / 视频插件根链接）
+.mimosa/
+.v2c/
+.video_agent/
+
 # 调试产物（截图/状态 dump）
 tests/screenshots/
 tests/view-dump.json
