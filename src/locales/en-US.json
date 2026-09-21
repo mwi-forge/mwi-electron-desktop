@@ -151,6 +151,10 @@
   "bulk.alert.started_count": "Started {count} account(s)",
   "bulk.alert.stopped_count": "Stopped {count} account(s)",
   "bulk.alert.start_failed_summary": "Some accounts failed to start ({count}):\n{failures}",
-  "bulk.alert.start_failed_item": "{name}: {error}"
+  "bulk.alert.start_failed_item": "{name}: {error}",
+  "settings.diagnostics.label": "Diagnostics",
+  "settings.diagnostics.hint": "Export recent logs and a redacted config snapshot (no passwords, subscription nodes, or login data) for troubleshooting. Includes logs from the last 7 days.",
+  "settings.diagnostics.btn": "Export diagnostics",
+  "settings.diagnostics.done": "Exported: {path}",
+  "settings.diagnostics.failed": "Export failed: {err}"
 }
-

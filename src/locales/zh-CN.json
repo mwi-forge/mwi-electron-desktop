@@ -151,6 +151,10 @@
   "bulk.alert.started_count": "已启动 {count} 个账号",
   "bulk.alert.stopped_count": "已停止 {count} 个账号",
   "bulk.alert.start_failed_summary": "部分账号启动失败（{count} 个）：\n{failures}",
-  "bulk.alert.start_failed_item": "{name}: {error}"
+  "bulk.alert.start_failed_item": "{name}: {error}",
+  "settings.diagnostics.label": "诊断",
+  "settings.diagnostics.hint": "导出运行日志与脱敏后的配置快照（不含账号密码、订阅节点、登录数据），用于问题排查。文件包含最近 7 天日志。",
+  "settings.diagnostics.btn": "导出诊断包",
+  "settings.diagnostics.done": "已导出：{path}",
+  "settings.diagnostics.failed": "导出失败：{err}"
 }
-

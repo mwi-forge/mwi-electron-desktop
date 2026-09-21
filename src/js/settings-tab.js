@@ -109,6 +109,39 @@ function buildIdleAutoStopFieldset() {
   return { fieldset: fs, getEnabledInput: function () { return enabledInput; }, getMinutesInput: function () { return minutesInput; } };
 }
 
+// diagnostics fieldset（per issue #45）：一键导出诊断包
+// 主进程弹保存对话框并写 JSON；结果就地回显到 hint（不用弹窗，轻量）
+function buildDiagnosticsFieldset() {
+  var fsEl = document.createElement('fieldset');
+  fsEl.appendChild(el('legend', null, t('settings.diagnostics.label')));
+
+  var hint = el('div', 'settings-tab__hint', t('settings.diagnostics.hint'));
+  fsEl.appendChild(hint);
+
+  var btn = el('button', 'modal__btn');
+  btn.type = 'button';
+  btn.textContent = t('settings.diagnostics.btn');
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    if (!(window.api && window.api.diagnostics && window.api.diagnostics.export)) {
+      hint.textContent = t('settings.diagnostics.failed', { err: 'api unavailable' });
+      btn.disabled = false;
+      return;
+    }
+    window.api.diagnostics.export().then(function (r) {
+      if (r && r.ok) hint.textContent = t('settings.diagnostics.done', { path: r.path });
+      else if (r && r.canceled) { /* 用户取消不算失败，保持原 hint */ }
+      else hint.textContent = t('settings.diagnostics.failed', { err: (r && r.error) || 'unknown' });
+    }).catch(function (e) {
+      hint.textContent = t('settings.diagnostics.failed', { err: (e && e.message) || e });
+    }).finally(function () {
+      btn.disabled = false;
+    });
+  });
+  fsEl.appendChild(btn);
+  return fsEl;
+}
+
 function buildForm() {
   var supported = (i18n && i18n.SUPPORTED) || ['zh-CN', 'en-US'];
   var current = (i18n && i18n.getLocale()) || 'zh-CN';
@@ -145,6 +178,9 @@ function buildForm() {
   // idle auto-stop fieldset
   var idle = buildIdleAutoStopFieldset();
   form.appendChild(idle.fieldset);
+
+  // diagnostics fieldset（per issue #45）
+  form.appendChild(buildDiagnosticsFieldset());
 
   var actions = el('div', 'account-form-card__actions');
   var saveBtn = el('button', 'modal__btn modal__btn--primary', t('settings.btn.save'));

@@ -168,6 +168,11 @@ contextBridge.exposeInMainWorld('api', {
     platform: process.platform,
   },
 
+  // === 诊断包导出（per issue #45；主进程弹保存对话框并写文件）===
+  diagnostics: {
+    export: () => ipcRenderer.invoke('diagnostics:export'),
+  },
+
   // === 自定义标题栏窗口控制（仅 frame:false 模式生效）===
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
