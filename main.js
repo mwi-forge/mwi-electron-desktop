@@ -10,6 +10,7 @@ const logs = require('./lib/logs');
 const metrics = require('./lib/metrics');
 const alert = require('./lib/alert');
 const AssistantOverlay = require('./lib/assistant-overlay');
+const { createLogFileWriter } = require('./lib/logfile');
 
 // 资源优化：默认启用 GPU（反检测优先，避免 GPU 指纹缺失暴露无头特征）；
 // MWI_HW_ACCEL=0 时回退省电模式
@@ -25,6 +26,31 @@ if (!gotTheLock) {
   app.quit();
 } else {
   let mainWindow = null;
+
+  // === 生产可观测性（per issue #45）===
+  // 日志落盘：userData/logs/ 按天滚动、保留 7 天；环形缓冲照旧（内存）。
+  // app.getPath('userData') 在 ready 前即可用，越早挂 sink 丢的日志越少。
+  const logWriter = createLogFileWriter({
+    dir: path.join(app.getPath('userData'), 'logs'),
+    maxDays: 7,
+  });
+  logs.setSink(logWriter.append);
+  // 诊断包收集需要读日志文件；ipc.js 模块独立不持闭包，走 globalThis（同 __assistantOverlay 先例）
+  globalThis.__logWriter = logWriter;
+
+  // 崩溃捕获：记录后不退出（桌面应用惯例）——日志设施本身不能成为新崩溃源。
+  // handler 内只做 crashLine 直写 + console，绝不再抛。
+  process.on('uncaughtException', (err) => {
+    logWriter.crashLine('crash', 'uncaughtException: ' + (err && err.stack ? err.stack : err));
+    logs.error(null, 'uncaughtException: ' + (err && err.message ? err.message : err));
+    console.error('[mwi crash] uncaughtException', err);
+  });
+  process.on('unhandledRejection', (reason) => {
+    logWriter.crashLine('crash', 'unhandledRejection: ' + (reason && reason.stack ? reason.stack : reason));
+    logs.error(null, 'unhandledRejection: ' + reason);
+    console.error('[mwi crash] unhandledRejection', reason);
+  });
+
 
   function createMainWindow() {
     mainWindow = new BrowserWindow({
@@ -99,9 +125,15 @@ if (!gotTheLock) {
 
     mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
-    // 调试模式：捕获渲染进程 console 输出到主进程 stdout（Phase 0 验收用）
-    mainWindow.webContents.on('console-message', (_event, _level, message) => {
+    // console 桥接：全部转发主进程 stdout（Phase 0 验收用）；
+    // warn/error 级额外进全局日志流（自动落盘，渲染层 console.warn 无需新 IPC）。
+    // level 兼容新旧 Electron：新版字符串 'warning'/'error'，旧版数字 2/3
+    mainWindow.webContents.on('console-message', (_event, level, message) => {
       console.log('[renderer] ' + message);
+      const lv = String(level);
+      if (lv === 'warning' || lv === 'error' || lv === '2' || lv === '3') {
+        logs[lv === 'warning' || lv === '2' ? 'warn' : 'error']('app', '[renderer] ' + message);
+      }
     });
 
     // 调试模式：打开 DevTools
@@ -185,9 +217,10 @@ if (!gotTheLock) {
   // 同时清空 views idle timer 句柄（per openspec/changes/idle-auto-stop design Decision 8）
   // 防止 setTimeout 在 quit 之后回调造成 unref 警告或回调里访问已销毁 view
   app.on('before-quit', () => {
-    try { require('./lib/socks-gateway').releaseAll(); } catch (e) { /* ignore */ }
-    try { require('./lib/views').disposeAllIdleTimers(); } catch (e) { /* ignore */ }
-    try { if (globalThis.__assistantOverlay) globalThis.__assistantOverlay.destroy(); } catch (e) { /* ignore */ }
+    const { safe } = require('./lib/safe');
+    safe(() => require('./lib/socks-gateway').releaseAll(), 'quit:releaseAll');
+    safe(() => require('./lib/views').disposeAllIdleTimers(), 'quit:disposeIdleTimers');
+    safe(() => { if (globalThis.__assistantOverlay) globalThis.__assistantOverlay.destroy(); }, 'quit:destroyOverlay');
   });
 
   app.on('window-all-closed', () => {

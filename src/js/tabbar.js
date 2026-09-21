@@ -6,6 +6,7 @@ import { accountForm as defaultAccountForm } from './account-form.js';
 import { subscriptionsTab as defaultSubscriptionsTab } from './subscription-tab.js';
 import { settingsTab as defaultSettingsTab } from './settings-tab.js';
 import { sidebar as defaultSidebar } from './sidebar.js';
+import { safe } from './safe.js';
 
 // 协作者引用（init 运行期绑定——循环依赖下模块顶层读 default 会 TDZ；deps 可覆盖供测试注入）
 let store = null;
@@ -56,7 +57,7 @@ async function closeAllFormTabs() {
   if (previewTabId) clearPreviewTab();
   activeTabId = null;
   if (window.api && window.api.canvas && window.api.canvas.resumeFocused) {
-    try { await window.api.canvas.resumeFocused(); } catch (e) { /* ignore */ }
+    safe(() => window.api.canvas.resumeFocused(), 'tabbar:resumeFocused');
   }
   render();
 }
@@ -194,7 +195,7 @@ async function focusGameTab(accountId) {
   // 关闭当前 form tab（如果 active 的是 form）：unmount + resumeFocused
   var prevFormTab = findFormTab(prevActive);
   if (prevFormTab) {
-    try { await window.api.canvas.resumeFocused(); } catch (e) {}
+    safe(() => window.api.canvas.resumeFocused(), 'tabbar:resumeFocused');
     closeAllStaticTabs();
   }
 
@@ -202,7 +203,7 @@ async function focusGameTab(accountId) {
   if (previewTabId && previewTabId !== accountId) clearPreviewTab();
 
   // 通知主进程聚焦 game view（views.focus）
-  try { await window.api.views.focus(accountId); } catch (e) {}
+  safe(() => window.api.views.focus(accountId), 'tabbar:focus');
   render();
 }
 
@@ -214,13 +215,13 @@ async function focusPreviewTab(accountId) {
   // 切换前如果是 form tab：resume focused + 关闭静态层
   var prevFormTab = findFormTab(prevActive);
   if (prevFormTab) {
-    try { await window.api.canvas.resumeFocused(); } catch (e) {}
+    safe(() => window.api.canvas.resumeFocused(), 'tabbar:resumeFocused');
     closeAllStaticTabs();
   }
 
   // hide 当前 focused view（如果有），让 canvas placeholder 露出来
   if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
-    try { await window.api.canvas.hideFocused(); } catch (e) {}
+    safe(() => window.api.canvas.hideFocused(), 'tabbar:hideFocused');
   }
   render();
 }
@@ -235,7 +236,7 @@ function setPreviewTab(accountId) {
   closeAllStaticTabs();
   // hide focused view
   if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
-    try { window.api.canvas.hideFocused(); } catch (e) {}
+    safe(() => window.api.canvas.hideFocused(), 'tabbar:hideFocused');
   }
   render();
 }
@@ -265,7 +266,7 @@ async function focusFormTab(formTabId) {
   // 先恢复 focused view（如果之前被 hide 了），再切 form tab 时再 hide
   var prevFormTab = findFormTab(prevActive);
   if (!prevFormTab && window.api && window.api.canvas && window.api.canvas.resumeFocused) {
-    try { await window.api.canvas.resumeFocused(); } catch (e) {}
+    safe(() => window.api.canvas.resumeFocused(), 'tabbar:resumeFocused');
   }
 
   // 关闭当前静态 tab（如果有不同的 form tab 在显示），改挂新 form
@@ -275,7 +276,7 @@ async function focusFormTab(formTabId) {
 
   // hide focused game view + 挂 form
   if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
-    try { await window.api.canvas.hideFocused(); } catch (e) {}
+    safe(() => window.api.canvas.hideFocused(), 'tabbar:hideFocused');
   }
 
   if (accountForm) {
@@ -304,13 +305,13 @@ async function closeFormTab(formTabId, result) {
 
   // 如果关闭的是当前 active form，尝试切回上一个 game tab 或没有 tab
   if (activeTabId === formTabId) {
-    try { await window.api.canvas.resumeFocused(); } catch (e) {}
+    safe(() => window.api.canvas.resumeFocused(), 'tabbar:resumeFocused');
     closeAllStaticTabs();  // 统一路径：accountForm + subscriptions + settings 都关闭
     var s = store.get();
     var running = s.runningIds || [];
     if (running.length > 0) {
       activeTabId = running[0];
-      try { await window.api.views.focus(activeTabId); } catch (e) {}
+      safe(() => window.api.views.focus(activeTabId), 'tabbar:focus');
     } else {
       activeTabId = null;
     }
@@ -395,7 +396,7 @@ async function focusSubscriptionsTab(formTabId) {
 
   // hide focused game view
   if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
-    try { await window.api.canvas.hideFocused(); } catch (e) {}
+    safe(() => window.api.canvas.hideFocused(), 'tabbar:hideFocused');
   }
 
   if (subscriptionsTab) {
@@ -419,7 +420,7 @@ async function focusSettingsTab(formTabId) {
 
   // hide focused game view
   if (window.api && window.api.canvas && window.api.canvas.hideFocused) {
-    try { await window.api.canvas.hideFocused(); } catch (e) {}
+    safe(() => window.api.canvas.hideFocused(), 'tabbar:hideFocused');
   }
 
   if (settingsTab) {
@@ -445,7 +446,7 @@ async function refresh() {
   if (activeTabId && ids.indexOf(activeTabId) === -1 && !findFormTab(activeTabId)) {
     activeTabId = ids.length > 0 ? ids[0] : null;
     if (activeTabId) {
-      try { await window.api.views.focus(activeTabId); } catch (e) {}
+      safe(() => window.api.views.focus(activeTabId), 'tabbar:focus');
     }
   }
   render();
