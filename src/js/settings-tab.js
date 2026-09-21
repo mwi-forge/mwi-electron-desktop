@@ -109,6 +109,45 @@ function buildIdleAutoStopFieldset() {
   return { fieldset: fs, getEnabledInput: function () { return enabledInput; }, getMinutesInput: function () { return minutesInput; } };
 }
 
+// captcha autoslide fieldset（per issue #47）：
+// 「登录验证码自动滑动」开关，改动即时持久化（与 diagnostics 一致，不走表单保存）
+function buildCaptchaFieldset() {
+  var fsEl = document.createElement('fieldset');
+  fsEl.appendChild(el('legend', null, t('settings.captcha.label')));
+
+  var wrap = el('label', null, '');
+  wrap.className = 'settings-tab__row';
+  var chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.name = 'captchaAutoslideEnabled';
+  chk.disabled = true;   // 配置回填前置灰，避免闪跳
+  wrap.appendChild(chk);
+  wrap.appendChild(el('span', null, t('settings.captcha.autoslide.label')));
+  fsEl.appendChild(wrap);
+
+  fsEl.appendChild(el('div', 'settings-tab__hint', t('settings.captcha.autoslide.hint')));
+
+  chk.addEventListener('change', function () {
+    if (!(window.api && window.api.captcha && window.api.captcha.setConfig)) return;
+    window.api.captcha.setConfig({ enabled: chk.checked }).catch(function (err) {
+      console.warn('[settings-tab] captcha.setConfig failed:', err && err.message);
+    });
+  });
+
+  var ready = (window.api && window.api.captcha && window.api.captcha.getConfig)
+    ? window.api.captcha.getConfig()
+    : Promise.resolve({ enabled: true });
+  ready.then(function (cfg) {
+    chk.checked = !!(cfg && cfg.enabled);
+    chk.disabled = false;
+  }).catch(function (_e) {
+    chk.checked = true;
+    chk.disabled = false;
+  });
+
+  return fsEl;
+}
+
 // diagnostics fieldset（per issue #45）：一键导出诊断包
 // 主进程弹保存对话框并写 JSON；结果就地回显到 hint（不用弹窗，轻量）
 function buildDiagnosticsFieldset() {
@@ -178,6 +217,9 @@ function buildForm() {
   // idle auto-stop fieldset
   var idle = buildIdleAutoStopFieldset();
   form.appendChild(idle.fieldset);
+
+  // captcha autoslide fieldset（per issue #47）
+  form.appendChild(buildCaptchaFieldset());
 
   // diagnostics fieldset（per issue #45）
   form.appendChild(buildDiagnosticsFieldset());

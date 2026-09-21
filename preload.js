@@ -80,6 +80,11 @@ contextBridge.exposeInMainWorld('api', {
       return () => ipcRenderer.removeListener('idle:countdown', h);
     },
   },
+  // === 验证码自动滑动配置（issue #47）===
+  captcha: {
+    getConfig: ()          => ipcRenderer.invoke('captcha:getConfig'),
+    setConfig: (payload)   => ipcRenderer.invoke('captcha:setConfig', payload),
+  },
   idle: {
     // 占位 namespace，未来扩展（getCurrentCountdown 等）
   },
